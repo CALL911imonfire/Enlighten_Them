@@ -1,0 +1,37 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="Enlighten Them"
+config/description="A comedy puzzle game about paradigm shifts. Made for GitHub Game Off 2026 (theme: SHIFT)."
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.1", "GL Compatibility")
+config/icon="res://icon.svg"
+
+[autoload]
+
+Game="*res://scripts/core/game.gd"
+Sfx="*res://scripts/core/sfx.gd"
+Dialog="*res://scripts/core/dialog.gd"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="keep"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+anti_aliasing/quality/msaa_2d=2
+environment/defaults/default_clear_color=Color(0.027, 0.024, 0.051, 1)

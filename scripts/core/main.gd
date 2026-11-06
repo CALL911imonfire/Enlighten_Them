@@ -77,19 +77,42 @@ func _build_pause() -> void:
 			_toggle_pause()
 			Dialog.clear()
 			Game.start(0)],
+		["", func():
+			Sfx.toggle_mute()
+			_mute_btn.text = _mute_label()],
 	]
 	for i in items.size():
 		var b := Button.new()
 		b.text = items[i][0]
-		b.position = Vector2(490, 270 + i * 70)
+		b.position = Vector2(490, 260 + i * 70)
 		b.size = Vector2(300, 54)
+		b.focus_mode = Control.FOCUS_NONE
 		b.add_theme_font_size_override("font_size", 22)
+		b.pressed.connect(Sfx.click)
 		b.pressed.connect(items[i][1])
 		_pause.add_child(b)
+		_mute_btn = b
+	_mute_btn.text = _mute_label()
+	var tip := Label.new()
+	tip.text = "Volume settings are under Options on the title screen."
+	tip.position = Vector2(0, 560)
+	tip.size = Vector2(1280, 30)
+	tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tip.add_theme_font_size_override("font_size", 16)
+	tip.add_theme_color_override("font_color", Color(0.9, 0.88, 0.96, 0.6))
+	_pause.add_child(tip)
+
+
+var _mute_btn: Button
+
+
+func _mute_label() -> String:
+	return "Sound: off  (M)" if Sfx.muted() else "Sound: on  (M)"
 
 
 func _toggle_pause() -> void:
 	_pause.visible = not _pause.visible
+	_mute_btn.text = _mute_label()
 	get_tree().paused = _pause.visible
 
 

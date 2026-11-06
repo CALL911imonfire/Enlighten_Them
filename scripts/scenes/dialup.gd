@@ -236,8 +236,7 @@ func _screech() -> void:
 func _solved() -> void:
 	phase = "won"
 	hint_btn.visible = false
-	Sfx.tone(660, 0.15, 0.05)
-	Sfx.tone(880, 0.2, 0.05, "triangle", 0.12)
+	Sfx.chime()
 	if era_i < 2:
 		mail = 0.0
 		mail_pts = _mail_path()

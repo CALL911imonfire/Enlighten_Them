@@ -257,6 +257,7 @@ func _delayed_fly(b: Dictionary, d: float) -> void:
 
 
 func _finish() -> void:
+	Sfx.chime()
 	await wait(3.2)
 	while Dialog.busy():
 		await wait(0.2)

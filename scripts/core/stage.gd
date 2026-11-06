@@ -155,6 +155,7 @@ func button(label: String, pos: Vector2, size: Vector2, cb: Callable, font_size 
 	b.add_theme_color_override("font_disabled_color", Color(1, 1, 1, 0.35))
 	b.pressed.connect(func():
 		if not busy():
+			Sfx.click()
 			cb.call())
 	add_child(b)
 	return b

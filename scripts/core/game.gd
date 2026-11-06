@@ -25,7 +25,7 @@ const CHAPTERS := [
 var carl := {}
 var carl_made := false
 
-var settings := {"steady_hands": false, "relaxed": false, "music": true}
+var settings := {"steady_hands": false, "relaxed": false, "vol_master": 0.8, "vol_music": 0.7, "vol_sfx": 0.8, "muted": false}
 var reached := 1          # furthest chapter unlocked
 var current := 0
 var transitioning := false

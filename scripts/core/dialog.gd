@@ -213,8 +213,13 @@ func _process(dt: float) -> void:
 			_shown = _text.length()
 			advance()
 	if _panel.visible and _shown < _text.length():
+		var before := int(_shown)
 		_shown = minf(_text.length(), _shown + dt * 46.0)
 		_body.visible_characters = int(_shown)
+		for c in range(before, int(_shown)):
+			if c % 3 == 2 and _text[c] != " ":
+				Sfx.type_blip(_speaker, _text[c])
+				break
 	elif _panel.visible:
 		_body.visible_characters = -1
 	if _panel.visible and not _is_quip:

@@ -175,8 +175,10 @@ func _say_line(key: String) -> void:
 	var L: Dictionary = LINES[key]
 	if L.get("pun", false) and not puns_off:
 		pun_count += 1
-	for s in _line(key):
-		Dialog.quip(s)
+	if key == "alive":
+		# the lightning line jumps ahead of anything still queued
+		Dialog.clear()
+	Dialog.say(_line(key))
 	if pun_count >= 4 and pun_sw == "hidden":
 		pun_sw = "on"
 
@@ -200,6 +202,13 @@ func _count(type: String) -> int:
 func _on_add(type: String) -> void:
 	var n := _count(type)
 	var total := parts.size()
+	if total >= 5 and not said.has("alive"):
+		said["alive"] = true
+		flash = 1.0
+		Sfx.noise(1.4, 200, 1.6, "low")
+		Sfx.noise(0.2, 2500, 0.5)
+		_say_line("alive")
+		return
 	if total == 1:
 		_once("frank")
 	if type == "leg" and _once("leg"): return
@@ -213,13 +222,6 @@ func _on_add(type: String) -> void:
 	if type == "mouth" and n == 2 and _once("mouths"): return
 	if type == "ear" and _once("ear"): return
 	if type == "fin" and n == 3 and _once("fins"): return
-	if total == 5 and not said.has("alive"):
-		said["alive"] = true
-		flash = 1.0
-		Sfx.noise(1.4, 200, 1.6, "low")
-		Sfx.noise(0.2, 2500, 0.5)
-		_say_line("alive")
-		return
 	if total == 8:
 		_next_idle()
 
@@ -243,8 +245,7 @@ func _next_idle() -> void:
 		if lines.is_empty():
 			continue
 		said[j[0]] = true
-		for s in lines:
-			Dialog.quip(s)
+		Dialog.say(lines)
 		return
 
 
@@ -257,7 +258,7 @@ func _pun_switch() -> void:
 		Dialog.say(["...Did you just turn off my puns?", "Oh, I see. You're the pun police now. Wonderful.",
 			"Fine. No more puns. From now on, I will speak plainly. Like a terms of service agreement."])
 		return
-	Dialog.quip("It's off. It stays off. You won. Enjoy the silence.", true)
+	Dialog.say(["It's off. It stays off. You won. Enjoy the silence."])
 
 
 # ---------------------------------------------------------------- parts
@@ -362,8 +363,12 @@ func _try_done() -> void:
 		"CARL:You gave me super intelligence. My learning curve is practically vertical. Do try to keep up, dummy."])
 	phase = "end"
 	talking = false
-	await wait(1.6)
-	finish(Vector2(CX + 40, CY))
+	await wait(0.6)
+	# Carl turns and walks off to the right, and we follow him into the next chapter
+	phase = "walk"
+	while walk_x < VW + 160:
+		await get_tree().process_frame
+	finish(Vector2(VW - 30, CY + 20))
 
 
 # ---------------------------------------------------------------- input
@@ -460,8 +465,13 @@ func release(_p: Vector2) -> void:
 
 
 # ---------------------------------------------------------------- update / draw
+var walk_x := 0.0
+
+
 func tick(dt: float) -> void:
 	flash = maxf(0.0, flash - dt * 1.5)
+	if phase == "walk":
+		walk_x = minf(walk_x + dt * (110.0 + walk_x * 0.6), VW + 400)
 	for k in ages.keys():
 		ages[k] += dt
 	if phase == "build" and not Dialog.busy():
@@ -502,15 +512,18 @@ func paint() -> void:
 		txt(Vector2(736, 46), "Parts", 17, Color("ffe9a8"))
 		txt(Vector2(736, 324), "Color", 15, Color("ffe9a8"))
 	var look := (mouse() - Vector2(CX + 60, CY - 20)) / 120.0
-	carl(Vector2(CX, CY + sin(t * 1.5) * 3), 1.0, {"parts": parts, "color": color, "sel": sel if phase == "build" else -99,
-		"pop": ages, "look": look, "talk": talking or phase == "end"})
+	if phase == "walk":
+		carl(Vector2(CX + walk_x, minf(CY + 30, 470.0 - Art.carl_feet(parts))), 1.0, {"parts": parts, "color": color, "walk": 0.6, "walk_speed": 7.0})
+	else:
+		carl(Vector2(CX, CY + sin(t * 1.5) * 3), 1.0, {"parts": parts, "color": color, "sel": sel if phase == "build" else -99,
+			"pop": ages, "look": look, "talk": talking or phase == "end"})
 	if phase == "build":
 		var s = _find(sel)
 		if s != null and Art.is_face(s.type):
 			var h := _handle_pt(s) + Vector2(0, sin(t * 1.5) * 3)
 			draw_circle(h, 7, Color("ffe9a8"))
 			draw_arc(h, 7, 0, TAU, 16, Color("1b1020"), 2.0, true)
-	if phase == "end":
+	if phase == "end" or phase == "walk":
 		Art.text(self, Vector2(CX, 110), "Carl joined the team.", 26, Color("fffbe8"), 0, Art.serif())
 	if pun_sw != "hidden" and phase == "build":
 		var on := pun_sw == "on"
@@ -521,8 +534,10 @@ func paint() -> void:
 		draw_circle(SWR.position + Vector2(96 if on else 68, 24), 9, Color.WHITE)
 	if drag_off:
 		txt(mouse() + Vector2(0, -26), "Let go to remove", 14, Color(1, 0.35, 0.35, 0.95), 0, 3)
-	var lp := Vector2(540 if phase != "end" else 470, (80 if phase != "end" else 150) + sin(t * 1.6) * 5)
-	light(lp, 22, {"goggles": phase != "end", "look": (Vector2(CX, CY) - lp) / 200.0})
+	var ending := phase == "end" or phase == "walk"
+	var lp := Vector2(540 if not ending else 470, (80 if not ending else 150) + sin(t * 1.6) * 5)
+	var lk := Vector2(CX + walk_x, CY) if phase == "walk" else Vector2(CX, CY)
+	light(lp, 22, {"goggles": not ending, "look": (lk - lp) / 200.0})
 	if flash > 0:
 		draw_rect(big_rect(), Color(0.92, 0.96, 1, flash * 0.8))
 		draw_polyline(PackedVector2Array([Vector2(380, 0), Vector2(350, 90), Vector2(375, 95), Vector2(330, 200)]), Color(1, 1, 1, flash), 4.0)

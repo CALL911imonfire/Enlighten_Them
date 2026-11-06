@@ -86,10 +86,22 @@ func setup() -> void:
 	for i in 7:
 		clouds.append({"x": i * 170.0, "y": 50.0 + (i * 53) % 150, "s": 0.7 + (i % 3) * 0.25})
 	_set_stage(0)
-	phase = "talk"
+	phase = "enter"
+
+
+var enter_x := -80.0   # Carl climbing out of the sea at the start
+
+
+func _hill(x: float) -> float:
+	## Height of the little seaside hill at the start (world x, before scrolling).
+	var d := (x - 92.0) / 72.0
+	return maxf(0.0, 1.0 - d * d) * 34.0
 
 
 func begin() -> void:
+	while enter_x < CX0:
+		await get_tree().process_frame
+	phase = "talk"
 	var lines := INTRO.duplicate()
 	if legs == 1:
 		lines.insert(2, "CARL:And kindly stop rushing me. I have precisely one leg.")
@@ -247,6 +259,9 @@ func tick(dt: float) -> void:
 		p.v.y += 500 * dt
 		p.life -= dt
 	particles = particles.filter(func(p): return p.life > 0)
+	if phase == "enter":
+		enter_x = minf(CX0, enter_x + dt * 70.0)
+		return
 	if phase == "arrive":
 		cy += (GROUND - 40 - cy) * dt * 1.2
 		vy = 0
@@ -355,6 +370,11 @@ func _draw_carl() -> void:
 	var feet := Art.carl_feet() * cs
 	match st:
 		0, 1:
+			if phase == "enter" or (st == 0 and enter_x < CX0):
+				var ex := enter_x
+				var ey := GROUND - _hill(ex) + maxf(0.0, (14.0 - ex) * 0.8)
+				carl(Vector2(ex, ey - feet), cs, {"walk": 0.45, "walk_speed": 9.0, "tilt": -_hill_slope(ex) * 0.8})
+				return
 			var lean := 0.12 if st == 1 else 0.0
 			var air := not ground
 			carl(Vector2(x, y - feet), cs, {"walk": 0.0 if air else (0.7 if st == 1 else 0.45), "walk_speed": 16.0 if st == 1 else 9.0, "air": air,
@@ -364,19 +384,11 @@ func _draw_carl() -> void:
 			carl(Vector2(x - 2, y - 66), cs * 0.85, {"tilt": -0.1})
 		3:
 			var yb := y + sin(t * 20.0) * 0.8
-			carl(Vector2(x + 2, yb - 36), cs * 0.6, {})
-			var body := PackedVector2Array([Vector2(x - 40, yb - 6), Vector2(x - 40, yb - 26), Vector2(x - 22, yb - 26), Vector2(x - 12, yb - 42), Vector2(x - 9, yb - 42),
-				Vector2(x - 16, yb - 28), Vector2(x + 20, yb - 28), Vector2(x + 13, yb - 42), Vector2(x + 16, yb - 42), Vector2(x + 26, yb - 26), Vector2(x + 40, yb - 26), Vector2(x + 40, yb - 6)])
-			draw_colored_polygon(body, Color("d64535"))
-			draw_line(Vector2(x - 9, yb - 42), Vector2(x + 13, yb - 42), Color("d64535"), 3.0)
-			draw_colored_polygon(PackedVector2Array([Vector2(x - 16, yb - 28), Vector2(x - 9, yb - 39), Vector2(x + 13, yb - 39), Vector2(x + 20, yb - 28)]), Color(0.75, 0.89, 0.96, 0.35))
-			draw_rect(Rect2(x - 40, yb - 20, 80, 4), Color(1, 1, 1, 0.2))
-			for wx in [-24, 24]:
-				draw_circle(Vector2(x + wx, yb - 6), 8, Color("222222"))
-				draw_circle(Vector2(x + wx, yb - 6), 3, Color("999999"))
+			Art.ellipse(self, Vector2(x, y + 1), 44, 4, Color(0, 0, 0, 0.25))
+			_draw_car(Vector2(x, yb), 84.0, Color("d64535"), true)
 			for i in 3:
 				var p := fmod(t * 3 + i / 3.0, 1.0)
-				draw_circle(Vector2(x - 44 - p * 30, yb - 10 - p * 6), 3 + p * 6, Color(0.7, 0.7, 0.7, 0.35 * (1 - p)))
+				draw_circle(Vector2(x - 46 - p * 30, yb - 10 - p * 6), 3 + p * 6, Color(0.7, 0.7, 0.7, 0.35 * (1 - p)))
 		_:
 			var tilt := clampf(vy / 700.0, -0.5, 0.6)
 			draw_set_transform_matrix(cam * Transform2D(tilt, Vector2(x, y)))
@@ -394,6 +406,45 @@ func _draw_carl() -> void:
 			draw_circle(Vector2(35, 0), 3, Color("555555"))
 			Art.cam = cam
 			draw_set_transform_matrix(cam)
+
+
+func _hill_slope(x: float) -> float:
+	return (_hill(x + 2.0) - _hill(x - 2.0)) / 4.0
+
+
+func _draw_shore() -> void:
+	## The sea Carl walks out of, and the little hill beside it. Scrolls away with the road.
+	var ox := -dist
+	var hill := PackedVector2Array([Vector2(ox + 15, GROUND + 2)])
+	for i in 31:
+		var x := 20.0 + i * 4.8
+		hill.append(Vector2(ox + x, GROUND - _hill(x)))
+	hill.append(Vector2(ox + 170, GROUND + 2))
+	draw_colored_polygon(hill, Color("6fb35c"))
+	for i in 9:
+		var x := 36.0 + i * 13.0
+		var y := GROUND - _hill(x)
+		draw_line(Vector2(ox + x, y), Vector2(ox + x + 3, y - 6), Color("3f7d33"), 2.0)
+	# sand under the waterline
+	draw_colored_polygon(PackedVector2Array([Vector2(ox - 500, VH + 300), Vector2(ox - 500, GROUND), Vector2(ox + 34, GROUND), Vector2(ox + 130, VH + 300)]), Color("e3cf98"))
+	for i in 6:
+		draw_circle(Vector2(ox + 40 + i * 9, GROUND + 14 + i * 11), 1.5, Color("c9b27a"))
+
+
+func _draw_sea_front() -> void:
+	## Drawn after Carl so he looks like he is wading out of it.
+	var ox := -dist
+	var sea := PackedVector2Array([Vector2(ox - 500, VH + 300)])
+	for i in 41:
+		var x := -390.0 + i * 10.0
+		sea.append(Vector2(ox + x, GROUND - 4 + sin(x / 18.0 + t * 2.4) * 2.5))
+	sea.append(Vector2(ox + 18, GROUND + 14))
+	sea.append(Vector2(ox + 96, VH + 300))
+	draw_colored_polygon(sea, Color(0.2, 0.52, 0.82, 0.88))
+	for i in 6:
+		var x := -330.0 + i * 60.0 + fmod(t * 14.0, 60.0)
+		draw_line(Vector2(ox + x, GROUND + 4 + (i % 2) * 6), Vector2(ox + x + 18, GROUND + 4 + (i % 2) * 6), Color(1, 1, 1, 0.35), 2.0)
+	draw_line(Vector2(ox + 6, GROUND - 3), Vector2(ox + 20, GROUND - 2), Color(1, 1, 1, 0.6), 2.5)
 
 
 func _draw_horse(f: Vector2) -> void:
@@ -455,6 +506,45 @@ func _draw_horse(f: Vector2) -> void:
 	draw_line(b + Vector2(4, -14), head + Vector2(10, 6), Color(0.15, 0.1, 0.05, 0.8), 1.2, true)
 
 
+func _draw_car(base: Vector2, w: float, body: Color, rider := false) -> void:
+	## Side view of a little hatchback facing right. base = middle of the car at road level.
+	var x := base.x
+	var y := base.y
+	var h := w * 0.5
+	var dark := Art.shade(body, 0.7)
+	if rider:
+		carl(Vector2(x - w * 0.02, y - 30), cs * 0.55, {})
+	# lower body with hood and trunk
+	var lower := PackedVector2Array([
+		Vector2(x - h, y - 8), Vector2(x - h - 1, y - 20), Vector2(x - h + 6, y - 25), Vector2(x - w * 0.26, y - 26),
+		Vector2(x + w * 0.24, y - 26), Vector2(x + h - 8, y - 22), Vector2(x + h, y - 17), Vector2(x + h + 1, y - 10), Vector2(x + h - 3, y - 8)])
+	draw_colored_polygon(lower, body)
+	# cabin: pillars and roof, with see-through glass
+	var glass := PackedVector2Array([Vector2(x - w * 0.26, y - 26), Vector2(x - w * 0.18, y - 40), Vector2(x + w * 0.1, y - 40), Vector2(x + w * 0.24, y - 26)])
+	draw_colored_polygon(glass, Color(0.72, 0.88, 0.97, 0.45 if rider else 0.75))
+	draw_polyline(glass, body, 3.5, true)
+	draw_line(Vector2(x - w * 0.03, y - 40), Vector2(x - w * 0.03, y - 26), body, 3.0)
+	draw_line(glass[1] + Vector2(3, 2), glass[2] + Vector2(-4, 2), Color(1, 1, 1, 0.35), 1.5)
+	# trim, door seams, handles, lights, bumper
+	draw_line(Vector2(x - h + 2, y - 19), Vector2(x + h - 2, y - 19), Color(1, 1, 1, 0.22), 2.0)
+	draw_line(Vector2(x - w * 0.03, y - 26), Vector2(x - w * 0.03, y - 10), dark, 1.2)
+	draw_line(Vector2(x + w * 0.24, y - 26), Vector2(x + w * 0.22, y - 10), dark, 1.2)
+	draw_rect(Rect2(x + w * 0.06, y - 22, 6, 2), dark)
+	draw_rect(Rect2(x - w * 0.2, y - 22, 6, 2), dark)
+	Art.ellipse(self, Vector2(x + h - 2, y - 17), 2.5, 2.2, Color("fff2b0"))
+	draw_rect(Rect2(x - h - 1, y - 20, 3, 5), Color("e0403a"))
+	draw_rect(Rect2(x - h - 2, y - 11, w + 4, 3), Color("3a3d44"))
+	# wheels in their arches
+	for wx in [-w * 0.3, w * 0.3]:
+		var wc := Vector2(x + wx, y - 6)
+		draw_circle(Vector2(x + wx, y - 8), 10.5, dark)
+		draw_circle(wc, 8, Color("1d1d22"))
+		draw_circle(wc, 4, Color("a9afb8"))
+		for k in 3:
+			var aa := t * 14.0 + k * TAU / 3.0
+			draw_line(wc, wc + Vector2(cos(aa), sin(aa)) * 3.6, Color("6b7079"), 1.2)
+
+
 func _draw_obs() -> void:
 	for o in obs:
 		var sx: float = o.x - dist + CX0
@@ -462,46 +552,102 @@ func _draw_obs() -> void:
 			continue
 		match o.k:
 			"rock":
-				draw_colored_polygon(Art.ellipse_pts(Vector2(sx + o.w / 2, GROUND), o.w / 2, o.h + 2, 0, 16, PI, TAU), Color("7d7a73"))
-				Art.ellipse(self, Vector2(sx + o.w / 2 - 4, GROUND - o.h * 0.6), o.w * 0.18, o.h * 0.2, Color(1, 1, 1, 0.2))
+				var c := Vector2(sx + o.w / 2, GROUND)
+				var w: float = o.w
+				var hh: float = o.h
+				Art.ellipse(self, c + Vector2(0, 1), w * 0.55, 3, Color(0, 0, 0, 0.18))
+				draw_colored_polygon(PackedVector2Array([c + Vector2(-w / 2, 0), c + Vector2(-w * 0.44, -hh * 0.55), c + Vector2(-w * 0.2, -hh - 2),
+					c + Vector2(w * 0.12, -hh + 1), c + Vector2(w * 0.42, -hh * 0.6), c + Vector2(w / 2, 0)]), Color("85817a"))
+				draw_colored_polygon(PackedVector2Array([c + Vector2(w * 0.12, -hh + 1), c + Vector2(w * 0.42, -hh * 0.6), c + Vector2(w / 2, 0), c + Vector2(w * 0.05, 0)]), Color("6a6660"))
+				draw_colored_polygon(PackedVector2Array([c + Vector2(-w * 0.3, -hh * 0.7), c + Vector2(-w * 0.18, -hh + 1), c + Vector2(0, -hh * 0.8)]), Color(1, 1, 1, 0.22))
+				draw_polyline(PackedVector2Array([c + Vector2(-2, -hh * 0.9), c + Vector2(2, -hh * 0.5), c + Vector2(-1, -hh * 0.2)]), Color(0.25, 0.24, 0.22, 0.6), 1.2)
 			"log":
-				draw_rect(Rect2(sx, GROUND - o.h, o.w, o.h), Color("7a4e2a"))
-				Art.ellipse(self, Vector2(sx + o.w, GROUND - o.h / 2), 4, o.h / 2, Color("c79a63"))
+				var hh: float = o.h
+				var w: float = o.w
+				var r := hh / 2
+				Art.ellipse(self, Vector2(sx + w / 2, GROUND + 1), w * 0.55, 3, Color(0, 0, 0, 0.18))
+				draw_rect(Rect2(sx, GROUND - hh, w, hh), Color("7a4e2a"))
+				draw_circle(Vector2(sx, GROUND - r), r, Color("6a4224"))
+				for i in 4:
+					var yy: float = GROUND - hh + 3 + i * (hh - 6) / 3.0
+					draw_line(Vector2(sx + 4 + (i % 2) * 6, yy), Vector2(sx + w - 10 - (i % 2) * 8, yy), Color("5a361c"), 1.5)
+				Art.ellipse(self, Vector2(sx + w, GROUND - r), r * 0.55, r, Color("d8ab70"))
+				Art.ellipse_line(self, Vector2(sx + w, GROUND - r), r * 0.3, r * 0.55, Color("a87a44"), 1.2)
+				draw_line(Vector2(sx + w * 0.4, GROUND - hh), Vector2(sx + w * 0.35, GROUND - hh - 8), Color("5a361c"), 2.0)
+				Art.ellipse(self, Vector2(sx + w * 0.33, GROUND - hh - 9), 4, 2.5, Color("5aa34a"))
 			"hole":
-				draw_rect(Rect2(sx, GROUND, o.w, VH - GROUND + 200), Color("1d140c"))
+				var w: float = o.w
+				draw_rect(Rect2(sx, GROUND, w, VH - GROUND + 200), Color("1d140c"))
+				Art.vgrad(self, Rect2(sx, GROUND, w, 40), Color("4a3420"), Color("1d140c"))
+				draw_rect(Rect2(sx, GROUND, 5, VH - GROUND + 200), Color("3a2818"))
+				draw_rect(Rect2(sx + w - 5, GROUND, 5, VH - GROUND + 200), Color("2a1c10"))
+				for i in 3:
+					draw_rect(Rect2(sx - 4 + i * 3, GROUND - 2, 4, 3), Color("6b4a2a"))
+					draw_rect(Rect2(sx + w - 6 - i * 3, GROUND - 2, 4, 3), Color("6b4a2a"))
 			"fence":
-				draw_rect(Rect2(sx, GROUND - o.h, 6, o.h), Color("e9e1cf"))
-				draw_rect(Rect2(sx + o.w - 6, GROUND - o.h, 6, o.h), Color("e9e1cf"))
-				draw_rect(Rect2(sx - 8, GROUND - o.h + 6, o.w + 16, 6), Color("e9e1cf"))
-				draw_rect(Rect2(sx - 8, GROUND - o.h / 2, o.w + 16, 6), Color("e9e1cf"))
+				var w: float = o.w
+				var hh: float = o.h
+				var wood := Color("b07a45")
+				var lite := Color("cf9a62")
+				for px in [sx - 10, sx + w + 4]:
+					draw_rect(Rect2(px, GROUND - hh - 4, 7, hh + 4), wood)
+					draw_colored_polygon(PackedVector2Array([Vector2(px, GROUND - hh - 4), Vector2(px + 3.5, GROUND - hh - 9), Vector2(px + 7, GROUND - hh - 4)]), wood)
+					draw_rect(Rect2(px + 1, GROUND - hh, 2, hh), lite)
+				for ry in [GROUND - hh + 4, GROUND - hh * 0.5]:
+					draw_rect(Rect2(sx - 14, ry, w + 28, 6), lite)
+					draw_rect(Rect2(sx - 14, ry + 4, w + 28, 2), wood)
+					for nx in [sx - 7, sx + w + 7]:
+						draw_circle(Vector2(nx, ry + 3), 1.2, Color("4a3220"))
 			"cone":
 				var y: float = LANES[o.lane]
-				draw_colored_polygon(PackedVector2Array([Vector2(sx, y), Vector2(sx + o.w / 2, y - 28), Vector2(sx + o.w, y)]), Color("ff7a1a"))
-				draw_rect(Rect2(sx + 6, y - 16, o.w - 12, 4), Color.WHITE)
+				var w: float = o.w
+				Art.ellipse(self, Vector2(sx + w / 2, y + 1), w * 0.75, 3, Color(0, 0, 0, 0.2))
+				draw_rect(Rect2(sx - 4, y - 4, w + 8, 4), Color("e2611a"))
+				draw_colored_polygon(PackedVector2Array([Vector2(sx + 1, y - 4), Vector2(sx + w / 2 - 3, y - 30), Vector2(sx + w / 2 + 3, y - 30), Vector2(sx + w - 1, y - 4)]), Color("ff7a1a"))
+				draw_colored_polygon(PackedVector2Array([Vector2(sx + 5, y - 13), Vector2(sx + 7.5, y - 19), Vector2(sx + w - 7.5, y - 19), Vector2(sx + w - 5, y - 13)]), Color.WHITE)
+				draw_line(Vector2(sx + w / 2 - 1, y - 28), Vector2(sx + 5, y - 5), Color(1, 1, 1, 0.3), 1.5)
 			"car":
 				var y: float = LANES[o.lane]
-				Art.round_rect(self, Rect2(sx, y - 24, o.w, 18), 5, Color("4a78c9"))
-				Art.round_rect(self, Rect2(sx + 16, y - 38, o.w - 34, 16), 5, Color("4a78c9"))
-				draw_rect(Rect2(sx + 20, y - 35, o.w - 42, 10), Color(0.75, 0.89, 0.96, 0.6))
-				for wx in [14.0, o.w - 14.0]:
-					draw_circle(Vector2(sx + wx, y - 6), 7, Color("222222"))
+				var w: float = o.w
+				Art.ellipse(self, Vector2(sx + w / 2, y + 1), w * 0.55, 4, Color(0, 0, 0, 0.25))
+				var cols := [Color("4a78c9"), Color("3fa36b"), Color("e0b63a"), Color("8a5cc7")]
+				var ci := int(o.x) % cols.size()
+				_draw_car(Vector2(sx + w / 2, y), w, cols[ci])
 			"pothole":
-				Art.ellipse(self, Vector2(sx + o.w / 2, LANES[o.lane] - 4), o.w / 2, 6, Color("1a1a1a"))
+				var w: float = o.w
+				var c := Vector2(sx + w / 2, LANES[o.lane] - 4)
+				Art.ellipse(self, c, w / 2 + 3, 8, Color("2c2d31"))
+				Art.ellipse(self, c + Vector2(0, 1), w / 2, 6, Color("121214"))
+				Art.ellipse(self, c + Vector2(4, 2), w / 2 - 8, 3, Color(0.3, 0.45, 0.6, 0.5))
+				for k in 3:
+					var aa := -2.6 + k * 1.1
+					draw_line(c + Vector2(cos(aa) * w / 2, sin(aa) * 7), c + Vector2(cos(aa) * (w / 2 + 9), sin(aa) * 11), Color("2c2d31"), 1.5)
 			"gate":
 				var top: float = o.gy - o.gap / 2
 				var bot: float = o.gy + o.gap / 2
-				draw_rect(Rect2(sx, -300, o.w, top + 300), Color("d9dde6"))
+				var bw: float = o.w
+				# cloud bank hanging from above
+				draw_rect(Rect2(sx, -300, bw, top + 290), Color("cfd5e0"))
+				for i in 5:
+					draw_circle(Vector2(sx + 4 + i * 13.5, top - 6 + (i % 2) * 4), 12, Color("cfd5e0"))
 				for i in 4:
-					draw_circle(Vector2(sx + 8 + i * 16, top), 13, Color("d9dde6"))
-				draw_rect(Rect2(sx, bot, o.w, GROUND - bot), Color("5a6378"))
-				var yy := bot + 10
-				while yy < GROUND - 8:
-					var xx := sx + 8
-					while xx < sx + o.w - 8:
-						if int(xx * 7 + yy * 3) % 5 > 1:
-							draw_rect(Rect2(xx, yy, 6, 8), Color("ffd86b"))
-						xx += 14
+					draw_circle(Vector2(sx + 10 + i * 14, top - 16), 9, Color("e6eaf1"))
+				# skyscraper standing below. Window lights are fixed per building so they never flicker.
+				var seed := int(o.x)
+				draw_rect(Rect2(sx, bot, bw, GROUND - bot), Color("56607a"))
+				draw_rect(Rect2(sx + bw - 10, bot, 10, GROUND - bot), Color("48506a"))
+				draw_rect(Rect2(sx - 3, bot, bw + 6, 6), Color("6c7792"))
+				draw_rect(Rect2(sx + bw * 0.5 - 1, bot - 16, 2, 16), Color("9aa3b8"))
+				draw_circle(Vector2(sx + bw * 0.5, bot - 17), 2.5, Color(1, 0.3, 0.25, 0.6 + 0.4 * sin(t * 4.0)))
+				var row := 0
+				var yy := bot + 12
+				while yy < GROUND - 22:
+					for col in 4:
+						var hsh := absi((seed * 31 + row * 17 + col * 7) * 2654435761) % 7
+						draw_rect(Rect2(sx + 7 + col * 13, yy, 8, 9), Color("ffd86b") if hsh > 2 else Color("323a4f"))
 					yy += 16
+					row += 1
+				draw_rect(Rect2(sx + bw * 0.5 - 7, GROUND - 14, 14, 14), Color("2a3043"))
 
 
 func _draw_world() -> void:
@@ -548,32 +694,80 @@ func _draw_world() -> void:
 			draw_rect(Rect2(x, (LANES[0] + LANES[1]) / 2 - 12, 40, 4), Color("f2e6a0"))
 	else:
 		draw_rect(Rect2(-400, GROUND, VW + 800, VH - GROUND + 300), Color("5aa34a"))
+	if st == 0 and dist < VW + 200:
+		_draw_shore()
 	_draw_obs()
 	if lib_x > 0:
-		var sx := lib_x - dist + CX0
-		draw_rect(Rect2(sx, GROUND - 150, 190, 150), Color("d8cdb4"))
-		draw_colored_polygon(PackedVector2Array([Vector2(sx - 14, GROUND - 150), Vector2(sx + 95, GROUND - 200), Vector2(sx + 204, GROUND - 150)]), Color("b9ab8c"))
-		for i in 5:
-			draw_rect(Rect2(sx + 14 + i * 36, GROUND - 140, 12, 140), Color("f3ecdc"))
-		draw_rect(Rect2(sx + 78, GROUND - 60, 34, 60), Color("4a3a28"))
-		txt(Vector2(sx + 95, GROUND - 160), "LIBRARY", 14, Color("4a3a28"))
+		_draw_library(lib_x - dist + CX0)
+
+
+func _draw_library(sx: float) -> void:
+	## A small classical library: steps, columns, pediment, big doors, lamps.
+	var g := GROUND
+	Art.ellipse(self, Vector2(sx + 95, g + 2), 140, 6, Color(0, 0, 0, 0.15))
+	# side wings with windows
+	draw_rect(Rect2(sx - 34, g - 110, 258, 110), Color("d6cab0"))
+	draw_rect(Rect2(sx - 38, g - 114, 266, 6), Color("c9bc9e"))
+	for wx in [sx - 24.0, sx + 202.0]:
+		Art.round_rect(self, Rect2(wx, g - 94, 18, 34), 8, Color("4d5f78"))
+		draw_line(Vector2(wx + 9, g - 92), Vector2(wx + 9, g - 60), Color("8c7a58"), 1.5)
+		draw_line(Vector2(wx, g - 76), Vector2(wx + 18, g - 76), Color("8c7a58"), 1.5)
+		draw_rect(Rect2(wx - 2, g - 60, 22, 3), Color("c2b496"))
+	# main hall
+	draw_rect(Rect2(sx, g - 150, 190, 150), Color("e4dac4"))
+	# entablature with lettering
+	draw_rect(Rect2(sx - 10, g - 162, 210, 18), Color("d2c5a6"))
+	draw_rect(Rect2(sx - 10, g - 146, 210, 3), Color("c2b496"))
+	txt(Vector2(sx + 95, g - 149), "L I B R A R Y", 11, Color("5a4630"))
+	# pediment
+	draw_colored_polygon(PackedVector2Array([Vector2(sx - 16, g - 162), Vector2(sx + 95, g - 206), Vector2(sx + 206, g - 162)]), Color("cbbd9c"))
+	draw_colored_polygon(PackedVector2Array([Vector2(sx + 6, g - 166), Vector2(sx + 95, g - 197), Vector2(sx + 184, g - 166)]), Color("ddd1b4"))
+	draw_circle(Vector2(sx + 95, g - 178), 8, Color("cbbd9c"))
+	Art.ellipse(self, Vector2(sx + 95, g - 178), 4, 6, Color("ffe9a8"))
+	# doors (behind the columns)
+	Art.round_rect(self, Rect2(sx + 78, g - 80, 34, 56), 8, Color("5a3d24"))
+	draw_line(Vector2(sx + 95, g - 78), Vector2(sx + 95, g - 24), Color("3e2a18"), 2.0)
+	draw_circle(Vector2(sx + 91, g - 50), 1.5, Color("e7c14a"))
+	draw_circle(Vector2(sx + 99, g - 50), 1.5, Color("e7c14a"))
+	# columns with capitals, bases and fluting
+	for i in 6:
+		var cx := sx + 6 + i * 34.0
+		if i == 2 or i == 3:
+			cx += -6 if i == 2 else 6
+		draw_rect(Rect2(cx, g - 140, 14, 116), Color("f3ecdc"))
+		draw_rect(Rect2(cx + 10, g - 140, 4, 116), Color("dcd2bc"))
+		draw_line(Vector2(cx + 5, g - 136), Vector2(cx + 5, g - 28), Color(0, 0, 0, 0.08), 1.0)
+		draw_rect(Rect2(cx - 3, g - 145, 20, 6), Color("e8dfca"))
+		draw_rect(Rect2(cx - 3, g - 26, 20, 4), Color("e8dfca"))
+	# steps
+	for i in 3:
+		draw_rect(Rect2(sx - 6 - i * 6, g - 22 + i * 7, 202 + i * 12, 8), Color("cfc3a8") if i % 2 == 0 else Color("ddd2b8"))
+	# lamps
+	for lx in [sx + 66.0, sx + 124.0]:
+		draw_rect(Rect2(lx - 1, g - 70, 2, 10), Color("3a3a3a"))
+		draw_circle(Vector2(lx, g - 72), 3.5, Color("ffe08a"))
+		Art.glow(self, Vector2(lx, g - 72), 16, Color(1, 0.9, 0.5, 0.35))
+	# a reading banner
+	draw_rect(Rect2(sx + 150, g - 134, 14, 36), Color("7a2a3a"))
+	draw_colored_polygon(PackedVector2Array([Vector2(sx + 150, g - 98), Vector2(sx + 157, g - 92), Vector2(sx + 164, g - 98)]), Color("7a2a3a"))
+	draw_rect(Rect2(sx + 152, g - 124, 10, 8), Color("ffe9a8"))
+	draw_line(Vector2(sx + 157, g - 124), Vector2(sx + 157, g - 116), Color("7a2a3a"), 1.0)
 
 
 func paint() -> void:
 	_draw_world()
 	if phase != "crash" or int(t * 12) % 2 == 1:
 		_draw_carl()
+	if st == 0 and dist < VW + 200:
+		_draw_sea_front()
 	for p in particles:
 		draw_rect(Rect2(p.p, Vector2(4, 4)), Color(1, 0.87, 0.47, minf(1, p.life * 2)))
 	light(Vector2(VW - 70, 64 + sin(t * 1.6) * 5), 18, {S.prop: true} if S.prop != "" else {})
 	var prog := 1.0 if phase in ["end", "arrive"] else _progress()
 	Art.round_rect(self, Rect2(20, 20, 300, 10), 5, Color(0, 0, 0, 0.25))
 	Art.round_rect(self, Rect2(20, 20, maxf(10, 300 * prog), 10), 5, Color("ffcf5a"))
-	var label: String = S.name + ("  ·  gaps %d/%d" % [gates_passed, S.gates] if S.mode == "flap" else "")
-	txt(Vector2(20, 48), label, 14, Color("1b2a3a"), -1)
-	for i in STAGES.size():
-		var c := Color("ffcf5a") if i == st else (Color(0.1, 0.16, 0.23, 0.8) if i < st else Color(0.1, 0.16, 0.23, 0.3))
-		txt(Vector2(360 + i * 64, 30), STAGES[i].name, 13, c, 0)
+	if S.mode == "flap":
+		txt(Vector2(20, 48), "Gaps %d/%d" % [gates_passed, S.gates], 14, Color("1b2a3a"), -1)
 	if phase == "ready" and not busy():
 		Art.round_rect(self, Rect2(VW / 2 - 170, 170, 340, 60), 12, Color(0.04, 0.04, 0.12, 0.55))
 		txt(Vector2(VW / 2, 207), "Click or press Space: " + S.btn, 20, Color("fffbe8"))

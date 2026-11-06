@@ -11,7 +11,7 @@ signal line_shown(text: String, speaker: String)
 
 const BOX_H := 128.0
 const STYLES := {
-	"light": {"name": "God, the Beginning", "bg": Color(0.047, 0.04, 0.094, 0.96), "edge": Color(1, 0.91, 0.66, 0.55), "who": Color("ffe9a8"), "text": Color("f4efe2")},
+	"light": {"name": "The Light", "bg": Color(0.047, 0.04, 0.094, 0.96), "edge": Color(1, 0.91, 0.66, 0.55), "who": Color("ffe9a8"), "text": Color("f4efe2")},
 	"carl": {"name": "Carl", "bg": Color(0.23, 0.10, 0.024, 0.97), "edge": Color("ff9f43"), "who": Color("ffb070"), "text": Color("fff1e2")},
 	"lib": {"name": "Librarian (off screen)", "bg": Color(0.12, 0.13, 0.16, 0.97), "edge": Color("9aa4b2"), "who": Color("c9d1dc"), "text": Color("eef1f5")},
 	"new": {"name": "Carl, the Beginning", "bg": Color(0.16, 0.11, 0.03, 0.97), "edge": Color("ffe9a8"), "who": Color("ffe9a8"), "text": Color("fff8e6")},

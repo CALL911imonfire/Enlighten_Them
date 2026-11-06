@@ -2,7 +2,7 @@
 
 A comedy puzzle game about paradigm shifts, made in Godot 4.1 for GitHub Game Off 2026 (theme: SHIFT).
 
-A glowing light (God, the Beginning) asks you to "enlighten" humanity one paradigm shift at a time. Every chapter zooms into the next one, and the fish you build in chapter 4, Carl, follows you for the rest of the game.
+A glowing light called the Light asks you to "enlighten" humanity one paradigm shift at a time. Every chapter zooms into the next one, and the fish you build in chapter 4, Carl, follows you for the rest of the game.
 
 ## Chapters
 

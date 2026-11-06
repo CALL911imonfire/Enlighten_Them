@@ -395,43 +395,233 @@ func _on_screen(ph: String) -> bool:
 	return ph in ["login", "profiles", "bossintro", "boss", "still", "stillq", "end"] or (ph == "talk" and dead_t > 0)
 
 
-func paint() -> void:
+func _draw_room() -> void:
+	# wood-panelled wall, picture rail, baseboard, carpet and a rug
 	draw_rect(big_rect(), Color("2a1d14"))
 	for i in range(-12, 24):
 		draw_rect(Rect2(i * 52, -600, 2, 1000), Color("3a2a1d"))
+		draw_rect(Rect2(i * 52 + 24, -600, 1, 1000), Color(1, 1, 1, 0.025))
+	draw_rect(Rect2(-600, 30, 1800, 6), Color("4a3524"))
+	draw_rect(Rect2(-600, 392, 1800, 10), Color("4a3524"))
 	draw_rect(Rect2(-600, 400, 1800, 600), Color("5a2e2a"))
-	Art.glow(self, SCR.get_center(), 320, Color(0.5, 0.65, 1, 0.08 if phase in ["wire", "tape"] else 0.18))
-	# stand and VCR
-	draw_rect(Rect2(150, 372, 300, 12), Color("4a2e17"))
-	draw_rect(Rect2(160, 384, 10, 40), Color("4a2e17"))
-	draw_rect(Rect2(430, 384, 10, 40), Color("4a2e17"))
-	Art.round_rect(self, Rect2(180, 322, 240, 50), 6, Color("1d1d22"))
-	draw_rect(Rect2(270, 330, 60, 10), Color("0c0c10"))
+	for i in 40:
+		draw_rect(Rect2(-600 + i * 46, 400, 1, 600), Color(0, 0, 0, 0.06))
+	Art.ellipse(self, Vector2(300, 470), 250, 42, Color("6e3b2e"))
+	Art.ellipse_line(self, Vector2(300, 470), 236, 36, Color("c79a5b"), 2.0)
+	Art.ellipse_line(self, Vector2(300, 470), 220, 31, Color("8a4a36"), 3.0)
+	# framed picture of a sunset
+	draw_rect(Rect2(-170, 80, 120, 86), Color("6b4a2a"))
+	Art.vgrad(self, Rect2(-162, 88, 104, 70), Color("f2a65a"), Color("7a4a8a"))
+	draw_circle(Vector2(-110, 140), 14, Color("ffe08a"))
+	draw_rect(Rect2(-162, 140, 104, 18), Color("3a5a7a"))
+	# floor lamp
+	draw_rect(Rect2(638, 150, 4, 250), Color("2a2a2a"))
+	Art.ellipse(self, Vector2(640, 400), 20, 5, Color("2a2a2a"))
+	draw_colored_polygon(PackedVector2Array([Vector2(616, 150), Vector2(664, 150), Vector2(652, 112), Vector2(628, 112)]), Color("e9d9b0"))
+	Art.glow(self, Vector2(640, 170), 140, Color(1, 0.85, 0.5, 0.16))
+	# potted plant
+	draw_colored_polygon(PackedVector2Array([Vector2(28, 400), Vector2(64, 400), Vector2(58, 440), Vector2(34, 440)]), Color("b8603a"))
+	for k in 7:
+		var a := -2.4 + k * 0.3 + sin(t * 0.8 + k) * 0.03
+		var tip := Vector2(46, 400) + Vector2(cos(a), sin(a)) * (60 + (k % 3) * 12)
+		draw_polyline(Art.quad(Vector2(46, 400), Vector2(46, 400).lerp(tip, 0.5) + Vector2(0, -12), tip), Color("3f8a4a"), 5.0, true)
+
+
+func _draw_tv() -> void:
+	# rabbit-ear antenna
+	draw_line(Vector2(300, 60), Vector2(250, 6), Color("888888"), 2.0, true)
+	draw_line(Vector2(300, 60), Vector2(352, 10), Color("888888"), 2.0, true)
+	draw_circle(Vector2(250, 6), 3, Color("aaaaaa"))
+	draw_circle(Vector2(352, 10), 3, Color("aaaaaa"))
+	Art.ellipse(self, Vector2(300, 60), 16, 7, Color("2b2b31"))
+	# cabinet with a wood-grain trim and a speaker grille
+	Art.round_rect(self, Rect2(146, 56, 308, 232), 18, Color("2b2b31"))
+	Art.round_rect(self, Rect2(150, 58, 300, 224), 16, Color("3b3b42"))
+	Art.round_rect(self, Rect2(156, 64, 288, 212), 12, Color("4a4a52"))
+	draw_rect(Rect2(160, 66, 280, 3), Color(1, 1, 1, 0.08))
+	draw_rect(SCR.grow(4), Color("1c1c22"))
+	draw_rect(SCR, Color("0b0b0f"))
+	draw_rect(Rect2(254, 282, 92, 12), Color("2b2b31"))
+	Art.round_rect(self, Rect2(236, 290, 128, 8), 3, Color("222227"))
+
+
+func _draw_tv_front() -> void:
+	# screen curvature glare and the brand badge, drawn over the picture
+	draw_rect(Rect2(SCR.position, Vector2(SCR.size.x, 30)), Color(1, 1, 1, 0.04))
+	draw_colored_polygon(PackedVector2Array([SCR.position + Vector2(8, 8), SCR.position + Vector2(70, 8), SCR.position + Vector2(8, 60)]), Color(1, 1, 1, 0.05))
+	txt(Vector2(300, 279), "LUMINA", 8, Color("9a9aa6"))
+
+
+func _draw_panel() -> void:
+	# A/V input box on the side of the TV
+	Art.round_rect(self, Rect2(452, 190, 84, 112), 6, Color("1f1f25"))
+	Art.round_rect(self, Rect2(456, 194, 76, 104), 4, Color("2b2b31"))
+	txt(Vector2(494, 205), "AV IN", 8, Color("8a8a96"))
+	for sp in [Vector2(460, 198), Vector2(528, 198), Vector2(460, 294), Vector2(528, 294)]:
+		draw_circle(sp, 2, Color("55555e"))
+	for j in JACKS:
+		var jp: Vector2 = j.p
+		draw_circle(jp, 11, Color("15151a"))
+		draw_circle(jp, 9, Color(j.c))
+		draw_circle(jp, 6, Art.shade(Color(j.c), 0.75))
+		draw_circle(jp, 3.5, Color("111111"))
+		txt(jp + Vector2(-14, 3), j.n, 7, Color("dddddd"), 1)
+
+
+func _qpts(a: Vector2, c: Vector2, b: Vector2, n := 8) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for i in n + 1:
+		var k := float(i) / n
+		out.append(a.lerp(c, k).lerp(c.lerp(b, k), k))
+	return out
+
+
+func _cable_path(i: int, q: Dictionary) -> PackedVector2Array:
+	## Cables leave the back of the VCR, run along the floor and up the wall in
+	## separate lanes, so they never cross each other or the labels.
+	var j: int = q.j
+	var y0 := 352.0 + (2 - j) * 7.0      # lower run for the outer lane
+	var pts := PackedVector2Array([Vector2(400, y0)])
+	if q.done:
+		var e: Vector2 = JACKS[j].p + Vector2(22, 0)
+		var lane := 556.0 + (2 - j) * 13.0
+		pts.append_array(_qpts(Vector2(430, y0), Vector2(lane, y0), Vector2(lane, y0 - 24)))
+		pts.append_array(_qpts(Vector2(lane, e.y + 18), Vector2(lane, e.y), Vector2(lane - 18, e.y)))
+		pts.append(e)
+	else:
+		var e: Vector2 = q.p - Vector2(10, 0)
+		pts.append_array(_qpts(Vector2(424, y0), Vector2(470 + j * 8, y0 + 4), Vector2(470 + j * 8, 400)))
+		pts.append_array(_qpts(Vector2(470 + j * 8, 410), Vector2(470, e.y + 34 + j * 6), Vector2(380, e.y + 30 + j * 6)))
+		pts.append_array(_qpts(Vector2(e.x + 20, e.y + 30 + j * 6), Vector2(e.x - 30, e.y + 26), e))
+	return pts
+
+
+func _draw_cables() -> void:
+	for i in plugs.size():
+		var q: Dictionary = plugs[i]
+		var col := Color(JACKS[q.j].c)
+		var pts := _cable_path(i, q)
+		draw_polyline(pts, Art.shade(col, 0.6), 6.0, true)
+		draw_polyline(pts, col, 4.0, true)
+
+
+func _draw_plugs() -> void:
+	for i in plugs.size():
+		var q: Dictionary = plugs[i]
+		var col := Color(JACKS[q.j].c)
+		if q.done:
+			# plug pushed into the jack, sleeve sticking out to the right
+			var e: Vector2 = JACKS[q.j].p
+			Art.round_rect(self, Rect2(e + Vector2(4, -6), Vector2(20, 12)), 3, col)
+			draw_rect(Rect2(e + Vector2(4, -6), Vector2(4, 12)), Color("b9bcc4"))
+			draw_rect(Rect2(e + Vector2(10, -6), Vector2(10, 3)), Color(1, 1, 1, 0.25))
+		else:
+			var e: Vector2 = q.p
+			Art.round_rect(self, Rect2(e - Vector2(10, 7), Vector2(20, 14)), 3, col)
+			draw_rect(Rect2(e + Vector2(-10, -7), Vector2(20, 4)), Color(1, 1, 1, 0.25))
+			draw_rect(Rect2(e + Vector2(10, -3), Vector2(9, 6)), Color("c9ccd4"))
+			draw_rect(Rect2(e + Vector2(10, -3), Vector2(9, 2)), Color(1, 1, 1, 0.4))
+			if sel_plug == i:
+				Art.round_rect(self, Rect2(e - Vector2(15, 12), Vector2(38, 24)), 6, Color(1, 0.81, 0.35, 0.25))
+				draw_rect(Rect2(e - Vector2(15, 12), Vector2(38, 24)), Color("ffcf5a"), false, 2.0)
+			elif phase == "wire" and sel_plug < 0:
+				draw_arc(e + Vector2(4, 0), 18 + sin(t * 5) * 2, 0, TAU, 24, Color(1, 0.81, 0.35, 0.35 + 0.3 * sin(t * 5)), 1.5, true)
+
+
+func _draw_vcr() -> void:
+	# low cabinet with doors and a stack of tapes
+	draw_rect(Rect2(146, 372, 308, 12), Color("5a3a1e"))
+	draw_rect(Rect2(146, 372, 308, 3), Color("7a5230"))
+	draw_rect(Rect2(152, 384, 296, 16), Color("4a2e17"))
+	draw_rect(Rect2(156, 400, 10, 22), Color("4a2e17"))
+	draw_rect(Rect2(434, 400, 10, 22), Color("4a2e17"))
+	for k in 3:
+		Art.round_rect(self, Rect2(160 + k * 14, 352 - 0, 12, 20), 2, Color(["2a2a30", "1f1f25", "3a2a20"][k]))
+		draw_rect(Rect2(162 + k * 14, 356, 8, 8), Color(["e9e1cf", "d64535", "f2c230"][k]))
+	# the VCR
+	Art.round_rect(self, Rect2(200, 322, 222, 50), 6, Color("1d1d22"))
+	draw_rect(Rect2(204, 324, 214, 3), Color(1, 1, 1, 0.08))
+	draw_rect(Rect2(204, 366, 214, 4), Color("141418"))
+	# tape slot with a flap
+	draw_rect(Rect2(268, 328, 70, 12), Color("0c0c10"))
+	draw_rect(Rect2(270, 329, 66, 3), Color("2a2a30"))
+	txt(Vector2(303, 349), "VHS", 7, Color("6a6a74"))
+	# clock display
+	Art.round_rect(self, Rect2(206, 340, 32, 16), 2, Color("0a0a0c"))
 	var blink := int(t * 2) % 2 == 0
 	if blink and dead_t == 0 and phase != "dead":
-		Art.text(self, Vector2(188, 352), "12:00", 13, Color("ff4d3a"), -1)
+		Art.text(self, Vector2(209, 353), "12:00", 10, Color("ff4d3a"), -1)
+	# play button
 	var play_col := Color("3a3a40")
 	if phase == "play":
 		play_col = Color("7fe08a") if blink else Color("3a6a40")
 	Art.round_rect(self, Rect2(240, 336, 40, 18), 3, play_col)
-	txt(Vector2(260, 349), "PLAY", 9, Color.WHITE)
+	draw_colored_polygon(PackedVector2Array([Vector2(254, 340), Vector2(254, 350), Vector2(262, 345)]), Color.WHITE)
+	# little transport buttons
+	for k in 4:
+		Art.round_rect(self, Rect2(342 + k * 9, 352, 7, 6), 1, Color("3a3a40"))
+	# tracking knob
+	draw_circle(Vector2(395, 346), 14, Color("2a2a30"))
 	draw_set_transform_matrix(cam * Transform2D((track - 0.5) * 4, Vector2(395, 346)))
 	draw_circle(Vector2.ZERO, 12, Color("55555c"))
+	for k in 12:
+		var a := k * TAU / 12
+		draw_line(Vector2(cos(a), sin(a)) * 9, Vector2(cos(a), sin(a)) * 12, Color("44444a"), 1.5)
 	draw_rect(Rect2(-1.5, -11, 3, 7), Color("dddddd"))
 	draw_set_transform_matrix(cam)
 	if phase == "track":
-		draw_arc(Vector2(395, 346), 16, 0, TAU, 20, Color(1, 0.81, 0.35, 0.5 + 0.4 * sin(t * 5)), 2.0, true)
-	txt(Vector2(395, 368), "TRACKING", 8, Color("aaaaaa"))
-	# TV
-	Art.round_rect(self, Rect2(150, 58, 300, 224), 16, Color("3b3b42"))
-	Art.round_rect(self, Rect2(156, 64, 288, 212), 12, Color("4a4a52"))
-	draw_rect(SCR, Color("0b0b0f"))
-	draw_rect(Rect2(270, 282, 60, 10), Color("2b2b31"))
-	Art.round_rect(self, Rect2(470, 196, 70, 100), 6, Color("2b2b31"))
-	for j in JACKS:
-		draw_circle(j.p, 9, Color(j.c))
-		draw_circle(j.p, 3.5, Color("111111"))
-		txt(j.p + Vector2(-13, 3), j.n, 8, Color("dddddd"), 1)
+		draw_arc(Vector2(395, 346), 17, 0, TAU, 20, Color(1, 0.81, 0.35, 0.5 + 0.4 * sin(t * 5)), 2.0, true)
+	txt(Vector2(330, 362), "TRACKING", 7, Color("8a8a94"))
+
+
+func _draw_modem(a: float) -> void:
+	## A beige dial-up modem with a phone cord, vents and blinking lights.
+	var m := MODEM
+	Art.glow(self, m, 80, Color(1, 0.94, 0.7, 0.4 * a))
+	# phone cord curling off to the wall
+	var cord := PackedVector2Array()
+	for i in 30:
+		var k := i / 29.0
+		cord.append(m + Vector2(34, 4).lerp(Vector2(120, -40), k) + Vector2(sin(k * 40.0) * 3.0, cos(k * 40.0) * 3.0))
+	draw_polyline(cord, Color(0.85, 0.82, 0.72, a), 1.6, true)
+	Art.ellipse(self, m + Vector2(0, 14), 40, 4, Color(0, 0, 0, 0.25 * a))
+	# body: slanted top and front face
+	draw_colored_polygon(PackedVector2Array([m + Vector2(-38, -6), m + Vector2(-30, -16), m + Vector2(30, -16), m + Vector2(38, -6)]), Color(0.9, 0.87, 0.78, a))
+	Art.round_rect(self, Rect2(m + Vector2(-38, -6), Vector2(76, 20)), 4, Color(0.96, 0.94, 0.88, a))
+	draw_rect(Rect2(m + Vector2(-38, 10), Vector2(76, 4)), Color(0.82, 0.78, 0.66, a))
+	for k in 6:
+		draw_line(m + Vector2(-20 + k * 8, -13), m + Vector2(-22 + k * 8, -9), Color(0.6, 0.56, 0.46, a), 1.2)
+	# lights with labels
+	var labels := ["HS", "AA", "CD", "RD", "SD"]
+	for k in 5:
+		var on := sin(t * (5 + k) + k * 2) > 0.1 or k == 0
+		var c := Color(["7fe08a", "7fe08a", "ffcf5a", "ff6a5a", "7fe0ff"][k]) if on else Color("6a6a60")
+		c.a = a
+		var lp := m + Vector2(-30 + k * 9, 2)
+		draw_circle(lp, 2.4, c)
+		if on:
+			Art.glow(self, lp, 6, Color(c.r, c.g, c.b, 0.5 * a))
+		txt(lp + Vector2(0, 9), labels[k], 5, Color(0.45, 0.42, 0.34, a))
+	txt(m + Vector2(22, 4), "ETHEREAL", 6, Color(0.54, 0.48, 0.31, a))
+	# a little antenna for the cosmic connection
+	draw_line(m + Vector2(28, -16), m + Vector2(34, -36), Color(0.75, 0.72, 0.62, a), 2.0)
+	draw_circle(m + Vector2(34, -37), 2.5, Color(1, 0.91, 0.66, a))
+
+
+func paint() -> void:
+	_draw_room()
+	Art.glow(self, SCR.get_center(), 320, Color(0.5, 0.65, 1, 0.08 if phase in ["wire", "tape"] else 0.18))
+	_draw_tv()
+	_draw_panel()
+	_draw_cables()
+	_draw_vcr()
+	_draw_plugs()
+	_draw_screen()
+	_draw_tv_front()
+	_draw_props()
+
+
+func _draw_screen() -> void:
 	# screen contents
 	if phase == "track":
 		var d := absf(track - target)
@@ -485,24 +675,9 @@ func paint() -> void:
 				txt(Vector2(300, 220), "Yes", 14, Color.WHITE)
 			if phase == "end":
 				_wheel({"p": Vector2(300, 160), "r": 20.0, "stage": 3, "hp": 0, "flash": 0.0})
-	draw_rect(Rect2(SCR.position, Vector2(SCR.size.x, 30)), Color(1, 1, 1, 0.04))
-	# cables
-	for i in plugs.size():
-		var q: Dictionary = plugs[i]
-		var j: Dictionary = JACKS[q.j]
-		var e: Vector2 = j.p if q.done else q.p
-		var p0 := Vector2(418, 332 + i * 12)
-		var c1 := Vector2(470, 336 + i * 12)
-		var c2 := Vector2(560, e.y + 30) if q.done else e + Vector2(60, -60)
-		var pts := PackedVector2Array()
-		for s in 21:
-			pts.append(p0.bezier_interpolate(c1, c2, e, s / 20.0))
-		draw_polyline(pts, Color(j.c), 5.0, true)
-		if not q.done:
-			Art.round_rect(self, Rect2(e - Vector2(8, 6), Vector2(16, 12)), 3, Color(j.c))
-			draw_rect(Rect2(e + Vector2(8, -2), Vector2(8, 4)), Color("888888"))
-			if sel_plug == i:
-				draw_rect(Rect2(e - Vector2(12, 10), Vector2(32, 20)), Color("ffcf5a"), false, 2.0)
+
+
+func _draw_props() -> void:
 	# tape
 	if tape_t < 1:
 		var k := maxf(0, tape_t)
@@ -522,16 +697,7 @@ func paint() -> void:
 		for w in wheels:
 			_wheel(w)
 	if modem > 0:
-		var a := modem
-		Art.glow(self, MODEM, 70, Color(1, 0.94, 0.7, 0.45 * a))
-		Art.round_rect(self, Rect2(MODEM + Vector2(-34, -10), Vector2(68, 22)), 5, Color(0.96, 0.94, 0.89, a))
-		draw_rect(Rect2(MODEM + Vector2(-34, 8), Vector2(68, 4)), Color(0.85, 0.81, 0.66, a))
-		draw_line(MODEM + Vector2(24, -10), MODEM + Vector2(30, -30), Color(1, 0.91, 0.66, a), 2.0)
-		for k in 4:
-			var c := Color(["7fe08a", "7fe08a", "ffcf5a", "7fe0ff"][k]) if sin(t * 6 + k * 2) > 0 else Color("555555")
-			c.a = a
-			draw_circle(MODEM + Vector2(-28 + k * 7, 0), 2.2, c)
-		txt(MODEM + Vector2(12, 3), "ETHEREAL", 7, Color(0.54, 0.48, 0.31, a))
+		_draw_modem(modem)
 	# Carl
 	if carl_in < 1:
 		var cp := CARL_HOME.lerp(MODEM + Vector2(0, 2), carl_in)

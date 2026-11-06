@@ -447,7 +447,7 @@ func _on_free(L: String) -> void:
 
 
 func _free_quip(c: Dictionary) -> void:
-	Dialog.quip(c.free)
+	Dialog.say([c.free])
 	if c.get("mic", false):
 		mic_t = 7.0
 
@@ -516,7 +516,7 @@ func _finish() -> void:
 	Sfx.chime()
 	await Dialog.say(["See that? Panthalassa is becoming the Pacific. The Atlantic and Indian Oceans are pouring into the gaps.",
 		"Normally this takes about 200 million years. You did it in a few minutes. Show-off.",
-		"Hey. Want to see something funny?", "Follow me."])
+		"Hey. Want to see something funny?", "It's down there. Let's dive in."])
 	fish_on = true
 	lt_target = _fish_pos() + Vector2(30, -30)
 	await wait(1.4)
@@ -715,11 +715,6 @@ func paint() -> void:
 		var c: Color = b.c
 		c.a = minf(1, b.life * 2)
 		draw_rect(Rect2(b.p, Vector2(4, 4)), c)
-	if fish_on:
-		var fp := _fish_pos() + Vector2(0, sin(t * 3) * 1.5)
-		Art.ellipse(self, fp, 7, 3.5, Color("ff9f43"))
-		draw_colored_polygon(PackedVector2Array([fp + Vector2(-6, 0), fp + Vector2(-11, -3), fp + Vector2(-11, 3)]), Color("ff9f43"))
-		draw_circle(fp + Vector2(4, -1), 0.9, Color.BLACK)
 	Art.cam = cam
 	draw_set_transform_matrix(cam)
 	for p in popups:

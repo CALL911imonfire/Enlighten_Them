@@ -325,24 +325,93 @@ func _meter(p: Vector2, w: float, frac: float, label: String) -> void:
 
 
 func _plant(p: Vector2) -> void:
-	Art.vgrad(self, Rect2(p + Vector2(-40, -10), Vector2(60, 40)), Color("7b6d65"), Color("554943"))
-	draw_rect(Rect2(p + Vector2(-34, -2), Vector2(10, 8)), Color(1, 0.8, 0.4, 0.6))
-	draw_rect(Rect2(p + Vector2(-18, -2), Vector2(10, 8)), Color(1, 0.8, 0.4, 0.6))
-	draw_rect(Rect2(p + Vector2(22, -50), Vector2(14, 80)), Color("4a403a"))
-	draw_rect(Rect2(p + Vector2(22, -50), Vector2(14, 6)), Color("8a2b20"))
-	for i in 4:
-		var k := fmod(t * 0.5 + i / 4.0, 1.0)
-		draw_circle(p + Vector2(29 + k * 30, -56 - k * 90), 8 + k * 16, Color(0.16, 0.16, 0.16, 0.6 * (1 - k)))
+	## Coal power station: brick turbine hall, cooling tower, chimney, coal heap and conveyor.
+	Art.ellipse(self, p + Vector2(0, 31), 62, 6, Color(0, 0, 0, 0.2))
+	# cooling tower (hyperboloid) at the back
+	var ct := p + Vector2(-30, 30)
+	var tower := PackedVector2Array([ct + Vector2(-22, 0), ct + Vector2(-15, -26), ct + Vector2(-13, -46), ct + Vector2(-16, -58),
+		ct + Vector2(16, -58), ct + Vector2(13, -46), ct + Vector2(15, -26), ct + Vector2(22, 0)])
+	draw_colored_polygon(tower, Color("b8b2aa"))
+	draw_colored_polygon(PackedVector2Array([ct + Vector2(4, -58), ct + Vector2(16, -58), ct + Vector2(13, -46), ct + Vector2(15, -26), ct + Vector2(22, 0), ct + Vector2(8, 0)]), Color("9d968d"))
+	Art.ellipse(self, ct + Vector2(0, -58), 16, 3, Color("6d665e"))
+	draw_line(ct + Vector2(-17, -18), ct + Vector2(17, -18), Color(0, 0, 0, 0.12), 2.0)
+	for i in 3:
+		var k := fmod(t * 0.35 + i / 3.0, 1.0)
+		draw_circle(ct + Vector2(-6 + k * 20, -66 - k * 60), 10 + k * 14, Color(0.93, 0.93, 0.93, 0.55 * (1 - k)))
+	# brick turbine hall with a saw-tooth roof and lit windows
+	var hall := Rect2(p + Vector2(-14, -8), Vector2(52, 38))
+	Art.vgrad(self, hall, Color("8a5a44"), Color("6a4232"))
+	for r in 7:
+		var yy := hall.position.y + 4 + r * 5
+		draw_line(Vector2(hall.position.x, yy), Vector2(hall.end.x, yy), Color(0, 0, 0, 0.12), 1.0)
+		for c in 6:
+			var xx := hall.position.x + c * 9 + (4.5 if r % 2 else 0.0)
+			draw_line(Vector2(xx, yy - 5), Vector2(xx, yy), Color(0, 0, 0, 0.08), 1.0)
+	for k in 3:
+		var rx := hall.position.x + k * 17.3
+		draw_colored_polygon(PackedVector2Array([Vector2(rx, hall.position.y), Vector2(rx + 17.3, hall.position.y - 9), Vector2(rx + 17.3, hall.position.y)]), Color("4a3a32"))
+		draw_line(Vector2(rx + 17.3, hall.position.y - 9), Vector2(rx + 17.3, hall.position.y), Color("a8c4d8"), 2.0)
+	for k in 4:
+		draw_rect(Rect2(hall.position + Vector2(5 + k * 12, 8), Vector2(7, 9)), Color(1, 0.8, 0.4, 0.75))
+	draw_rect(Rect2(hall.position + Vector2(20, 22), Vector2(12, 16)), Color("3a2a22"))
+	# chimney with red-and-white bands and black smoke
+	var ch := p + Vector2(38, -54)
+	draw_colored_polygon(PackedVector2Array([ch + Vector2(-5, 0), ch + Vector2(5, 0), ch + Vector2(7, 84), ch + Vector2(-7, 84)]), Color("6a625c"))
+	for b in 3:
+		draw_rect(Rect2(ch + Vector2(-5.5, b * 9), Vector2(11, 4)), Color("c23a2c") if b % 2 == 0 else Color("e8e2da"))
+	for i in 5:
+		var k := fmod(t * 0.5 + i / 5.0, 1.0)
+		draw_circle(ch + Vector2(k * 34, -6 - k * 90), 6 + k * 16, Color(0.16, 0.15, 0.15, 0.6 * (1 - k)))
+	# coal heap and conveyor
+	draw_colored_polygon(Art.ellipse_pts(p + Vector2(-56, 30), 16, 14, 0, 12, PI, TAU), Color("1e1c1c"))
+	for i in 5:
+		draw_circle(p + Vector2(-64 + i * 4, 24 - (i % 2) * 4), 1.5, Color("4a4646"))
+	draw_line(p + Vector2(-50, 22), p + Vector2(-14, 4), Color("3a3a3a"), 3.0)
+	for k in 4:
+		var f := fmod(t * 0.6 + k / 4.0, 1.0)
+		draw_circle((p + Vector2(-50, 20)).lerp(p + Vector2(-14, 2), f), 1.8, Color("111111"))
 
 
 func _solar(p: Vector2, s: float) -> void:
-	draw_rect(Rect2(p + Vector2(-2, 0), Vector2(4, 22)), Color("888888"))
-	draw_set_transform_matrix(cam * Transform2D(Vector2(1, 0), Vector2(-0.4, 0.6), p))
-	draw_rect(Rect2(-30, -30, 60, 40), Color(0.12 + s * 0.24, 0.24 + s * 0.31, 0.55 + s * 0.39))
-	for i in range(1, 3):
-		draw_line(Vector2(-30 + i * 20, -30), Vector2(-30 + i * 20, 10), Color("ccddee"), 1)
-	draw_line(Vector2(-30, -10), Vector2(30, -10), Color("ccddee"), 1)
+	## Tilted solar array on a frame: blue cells, silver edges and a glint when the sun is out.
+	draw_line(p + Vector2(-16, -4), p + Vector2(-16, 22), Color("7a7f88"), 3.0)
+	draw_line(p + Vector2(16, -14), p + Vector2(16, 22), Color("7a7f88"), 3.0)
+	draw_line(p + Vector2(-16, 12), p + Vector2(16, 4), Color("7a7f88"), 2.0)
+	Art.ellipse(self, p + Vector2(0, 23), 30, 4, Color(0, 0, 0, 0.2))
+	var xf := Transform2D(Vector2(1, 0), Vector2(-0.4, 0.6), p)
+	draw_set_transform_matrix(cam * xf)
+	var base := Color(0.1 + s * 0.2, 0.2 + s * 0.28, 0.48 + s * 0.4)
+	draw_rect(Rect2(-33, -33, 66, 46), Color("c9ced6"))
+	for cy in 4:
+		for cx in 6:
+			var r := Rect2(-31 + cx * 10.6, -31 + cy * 10.6, 9.6, 9.6)
+			draw_rect(r, base.lerp(Color(0.5, 0.7, 1), 0.08 * ((cx + cy) % 2)))
+			draw_line(r.position + Vector2(4.8, 0), r.position + Vector2(4.8, 9.6), Color(1, 1, 1, 0.12), 0.8)
+	if s > 0.2:
+		var g := fmod(t * 0.3, 1.0)
+		draw_colored_polygon(PackedVector2Array([Vector2(-33 + g * 80, -33), Vector2(-23 + g * 80, -33), Vector2(-33 + g * 80, 13), Vector2(-43 + g * 80, 13)]), Color(1, 1, 1, 0.12 * s))
 	draw_set_transform_matrix(cam)
+
+
+func _tower_block(x: float, y: float, w: float, h: float, col: Color, seed: int) -> void:
+	## A city building with ledges, a roof unit and windows that stay lit or dark.
+	Art.vgrad(self, Rect2(x - w / 2, y, w, h), col, Art.shade(col, 0.78))
+	draw_rect(Rect2(x + w / 2 - 6, y, 6, h), Color(0, 0, 0, 0.12))
+	draw_rect(Rect2(x - w / 2 - 2, y - 3, w + 4, 4), Art.shade(col, 0.7))
+	draw_rect(Rect2(x - w / 4, y - 9, w / 2.5, 6), Art.shade(col, 0.6))
+	draw_line(Vector2(x + w / 4, y - 3), Vector2(x + w / 4, y - 16), Color("666666"), 1.0)
+	var row := 0
+	var wy := y + 6
+	while wy < y + h - 14:
+		var cols := int((w - 8) / 9)
+		for c in cols:
+			var lit := ((seed * 13 + row * 7 + c * 5) % 5) > 1
+			draw_rect(Rect2(x - w / 2 + 5 + c * 9, wy, 5, 6), Color(1, 0.9, 0.6, 0.85) if lit else Color(0.2, 0.22, 0.28, 0.8))
+		draw_line(Vector2(x - w / 2, wy + 9), Vector2(x + w / 2, wy + 9), Color(0, 0, 0, 0.08), 1.0)
+		wy += 11
+		row += 1
+	draw_rect(Rect2(x - 5, y + h - 12, 10, 12), Color("3a3430"))
+	draw_rect(Rect2(x - w / 2, y + h - 14, w, 2), Color(1, 1, 1, 0.12))
 
 
 func _turbine(p: Vector2, w: float) -> void:
@@ -374,11 +443,11 @@ func paint() -> void:
 			Art.vgrad(self, Rect2(-900, -600, 2400, 890), Color("5aa9e6"), Color("bfe3ff"))
 			draw_rect(Rect2(-900, -600, 2400, 890), Color(0.24, 0.2, 0.18, n / 6.0 * 0.9))
 			draw_rect(Rect2(-900, 290, 2400, 900), Color("5a8a3a"))
-			for b in [[60, 230], [160, 215], [440, 225], [540, 235]]:
-				Art.vgrad(self, Rect2(b[0] - 20, b[1], 40, 70), Color("9a8a7a"), Color("7a6a5a"))
-				for wy in range(b[1] + 8, b[1] + 64, 12):
-					draw_rect(Rect2(b[0] - 12, wy, 6, 6), Color(1, 0.9, 0.6, 0.5))
-					draw_rect(Rect2(b[0] + 6, wy, 6, 6), Color(1, 0.9, 0.6, 0.5))
+			var city := [[-60, 210, 44, Color("8a7f9a")], [10, 238, 36, Color("a08a72")], [60, 196, 46, Color("7d8aa0")], [118, 228, 34, Color("9a8a7a")], [160, 205, 40, Color("8b9284")],
+				[440, 212, 42, Color("8a7f9a")], [492, 232, 34, Color("a08a72")], [540, 200, 46, Color("7d8aa0")], [600, 222, 40, Color("9a8a7a")], [660, 206, 44, Color("8b9284")]]
+			for i in city.size():
+				var b: Array = city[i]
+				_tower_block(b[0], b[1], b[2], 292 - b[1], b[3], i)
 			for k in COAL_LOTS.size():
 				var p: Vector2 = COAL_LOTS[k]
 				if coal[k]:
@@ -473,6 +542,9 @@ func paint() -> void:
 				draw_set_transform_matrix(cam * Transform2D(a + PI / 2, SUN + Vector2(cos(a), sin(a)) * RR))
 				if ring[k]:
 					Art.vgrad(self, Rect2(-26, -8, 52, 16), Color("3a56a0"), Color("1e2f60"))
+					for c in range(1, 6):
+						draw_line(Vector2(-26 + c * 52 / 6.0, -8), Vector2(-26 + c * 52 / 6.0, 8), Color(0.56, 0.7, 1, 0.35), 1.0)
+					draw_line(Vector2(-26, 0), Vector2(26, 0), Color(0.56, 0.7, 1, 0.35), 1.0)
 					draw_rect(Rect2(-26, -8, 52, 16), Color("8fb3ff"), false, 1.5)
 				else:
 					draw_rect(Rect2(-26, -8, 52, 16), Color(0.56, 0.7, 1, 0.35), false, 1.0)

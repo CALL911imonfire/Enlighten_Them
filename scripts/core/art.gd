@@ -1,7 +1,7 @@
 class_name Art
 extends RefCounted
 ## Code-drawn art helpers shared by every scene: shapes, glows, the light
-## (God, the Beginning) with all its props, and Carl drawn from Game.carl.
+## (the Light) with all its props, and Carl drawn from Game.carl.
 ## Nothing here loads an image file; every pixel comes from these functions.
 
 ## Camera transform of the scene currently drawing. Art functions draw on top of it.
@@ -210,18 +210,40 @@ static func draw_light(ci: CanvasItem, pos: Vector2, r: float, t: float, props :
 			ci.draw_circle(g, r * 0.36, Color(0.47, 0.86, 1, 0.55))
 			ellipse_line(ci, g, r * 0.36, r * 0.36, Color("3b2e22"), 3.0)
 	if props.get("glasses", false):
+		# round reading glasses: tinted lenses, thick frames, bridge, arms and a glint
+		var frame := Color(0.18, 0.12, 0.08, a)
+		var lr := r * 0.25
 		for sx in [-1.0, 1.0]:
-			ellipse_line(ci, pos + Vector2(sx * r * 0.3, -r * 0.06), r * 0.22, r * 0.17, col_dark, 2.2)
-		ci.draw_line(pos + Vector2(-r * 0.08, -r * 0.08), pos + Vector2(r * 0.08, -r * 0.08), col_dark, 2.0)
+			var g: Vector2 = pos + Vector2(sx * r * 0.3, -r * 0.08)
+			ci.draw_circle(g, lr, Color(0.8, 0.92, 1, 0.28 * a))
+			ellipse_line(ci, g, lr, lr, frame, maxf(2.0, r * 0.08))
+			ci.draw_arc(g, lr * 0.62, PI * 1.1, PI * 1.45, 8, Color(1, 1, 1, 0.8 * a), maxf(1.0, r * 0.04), true)
+			ci.draw_line(g + Vector2(sx * lr, -lr * 0.25), pos + Vector2(sx * r * 0.82, -r * 0.2), frame, maxf(1.5, r * 0.06), true)
+		ci.draw_arc(pos + Vector2(0, -r * 0.06), r * 0.07, PI * 1.05, PI * 1.95, 8, frame, maxf(1.5, r * 0.07), true)
 	if props.get("book", false):
-		var bx := pos.x - r * 2.6
-		var by := pos.y + r * 1.3 + sin(t * 2.0) * 3.0
-		ci.draw_colored_polygon(PackedVector2Array([Vector2(bx, by), Vector2(bx + 30, by + 6), Vector2(bx + 30, by + 38), Vector2(bx, by + 32)]), Color("e9dfc6"))
-		ci.draw_colored_polygon(PackedVector2Array([Vector2(bx + 30, by + 6), Vector2(bx + 60, by), Vector2(bx + 60, by + 32), Vector2(bx + 30, by + 38)]), Color("f4ecd8"))
-		for i in 4:
-			ci.draw_line(Vector2(bx + 4, by + 9 + i * 5), Vector2(bx + 26, by + 13 + i * 5), Color(0, 0, 0, 0.25), 1.0)
-			ci.draw_line(Vector2(bx + 34, by + 13 + i * 5), Vector2(bx + 56, by + 9 + i * 5), Color(0, 0, 0, 0.25), 1.0)
-		glow(ci, Vector2(bx + 30, by + 18), 40, Color(1, 0.95, 0.7, 0.25))
+		# held up in front of the light like someone reading: we see the covers, the pages face the light
+		var bc := pos + Vector2(0, r * 0.95 + sin(t * 2.0) * 2.0)
+		var w := r * 1.25
+		var hh := r * 1.15
+		glow(ci, bc + Vector2(0, -hh * 0.4), r * 1.6, Color(1, 0.95, 0.7, 0.25 * a))
+		# page edges peeking over the top
+		ci.draw_colored_polygon(PackedVector2Array([bc + Vector2(-w + 3, -hh * 0.42), bc + Vector2(0, -hh * 0.55), bc + Vector2(w - 3, -hh * 0.42), bc + Vector2(w - 3, -hh * 0.3), bc + Vector2(-w + 3, -hh * 0.3)]), Color(0.96, 0.93, 0.84, a))
+		for i in 3:
+			var yy := -hh * 0.46 + i * 3.0
+			ci.draw_line(bc + Vector2(-w + 6, yy + 1), bc + Vector2(-3, yy - hh * 0.1 + 1), Color(0.7, 0.65, 0.55, 0.6 * a), 1.0)
+			ci.draw_line(bc + Vector2(3, yy - hh * 0.1 + 1), bc + Vector2(w - 6, yy + 1), Color(0.7, 0.65, 0.55, 0.6 * a), 1.0)
+		# the two covers, angled slightly towards us
+		var cov := Color(0.17, 0.27, 0.5, a)
+		var cov2 := Color(0.13, 0.21, 0.42, a)
+		ci.draw_colored_polygon(PackedVector2Array([bc + Vector2(-w, -hh * 0.4), bc + Vector2(0, -hh * 0.52), bc + Vector2(0, hh * 0.5), bc + Vector2(-w, hh * 0.62)]), cov2)
+		ci.draw_colored_polygon(PackedVector2Array([bc + Vector2(0, -hh * 0.52), bc + Vector2(w, -hh * 0.4), bc + Vector2(w, hh * 0.62), bc + Vector2(0, hh * 0.5)]), cov)
+		# spine and gold lettering
+		ci.draw_line(bc + Vector2(0, -hh * 0.52), bc + Vector2(0, hh * 0.5), Color(0.08, 0.12, 0.25, a), maxf(2.0, r * 0.1))
+		var gold := Color(0.95, 0.8, 0.4, 0.9 * a)
+		for i in 3:
+			var y0 := -hh * 0.1 + i * hh * 0.14
+			ci.draw_line(bc + Vector2(w * 0.22, y0), bc + Vector2(w * (0.78 - i * 0.12), y0 + hh * 0.03), gold, 1.2)
+		ci.draw_circle(bc + Vector2(w * 0.5, -hh * 0.24), r * 0.08, gold)
 	if props.get("mic", false):
 		ci.draw_line(pos + Vector2(r * 1.2, r * 1.3), pos + Vector2(r * 0.55, r * 0.3), Color("333333"), 5.0, true)
 		ci.draw_circle(pos + Vector2(r * 0.45, r * 0.12), r * 0.5, Color("8a9099"))

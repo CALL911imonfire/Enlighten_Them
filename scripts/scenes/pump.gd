@@ -2,11 +2,13 @@ extends Stage
 ## Chapter 2: pump the flat Earth round. Pump too fast and it pops.
 
 const E := Vector2(250, 300)
-const PUMP_X := 500.0
-const PUMP_TOP := 380.0
-const PUMP_BOTTOM := 560.0
+const PUMP_X := 712.0
+const PUMP_TOP := 392.0
+const PUMP_BOTTOM := 552.0
 const STROKE := 70.0
-const NOZZLE_REST := Vector2(430, 600)
+const NOZZLE_REST := Vector2(640, 606)
+const HANDLE_TOP := PUMP_TOP - 12.0 - STROKE   # handle at rest; fully down it just meets the barrel
+const CONTS := [[-0.35, -0.15, 0.38, 0.5], [0.05, -0.3, 0.32, 0.38], [0.3, 0.05, 0.3, 0.45], [-0.1, 0.25, 0.28, 0.35], [-0.5, 0.25, 0.15, 0.25]]
 
 var phase := "talk"
 var stars: Array
@@ -78,7 +80,7 @@ func _valve() -> Vector2:
 
 
 func _handle_y() -> float:
-	return PUMP_TOP - 30.0 + handle * STROKE
+	return HANDLE_TOP + handle * STROKE
 
 
 func _on_handle(p: Vector2) -> bool:
@@ -86,7 +88,7 @@ func _on_handle(p: Vector2) -> bool:
 
 
 func _on_pump(p: Vector2) -> bool:
-	return absf(p.x - PUMP_X) < 40 and p.y > PUMP_TOP - 60 and p.y < PUMP_BOTTOM
+	return absf(p.x - PUMP_X) < 40 and p.y > HANDLE_TOP and p.y < PUMP_BOTTOM
 
 
 # ---------------------------------------------------------------- input
@@ -124,7 +126,7 @@ func drag(p: Vector2) -> void:
 	elif grab == "handle":
 		if absf(p.y - grab_start.y) > 6:
 			grab_moved = true
-		_set_handle((p.y - grab_off - (PUMP_TOP - 30.0)) / STROKE)
+		_set_handle((p.y - grab_off - HANDLE_TOP) / STROKE)
 	elif hold:
 		nozzle = p
 
@@ -290,18 +292,100 @@ func tick(dt: float) -> void:
 
 # ---------------------------------------------------------------- drawing
 func _land(x: Vector2, rx: float, ry: float, k: float) -> void:
-	for e in [[-0.35, -0.15, 0.38, 0.5], [0.05, -0.3, 0.32, 0.38], [0.3, 0.05, 0.3, 0.45], [-0.1, 0.25, 0.28, 0.35], [-0.5, 0.25, 0.15, 0.25]]:
-		Art.ellipse(self, x + Vector2(e[0] * rx, e[1] * ry), e[2] * rx, e[3] * ry, Color("4caf50"))
-	for e in [[0.1, -0.1, 0.08, 0.1], [-0.25, 0.05, 0.06, 0.12]]:
-		Art.ellipse(self, x + Vector2(e[0] * rx, e[1] * ry), e[2] * rx, e[3] * ry, Color("8d6e4a"))
-	for e in [[-0.2, -0.32, 0.05], [0.28, -0.1, 0.04]]:
-		Art.ellipse(self, x + Vector2(e[0] * rx, e[1] * ry), e[2] * rx, e[2] * rx * 0.6, Color(1, 1, 1, 0.8))
-	if k < 0.5:
-		var a := 1.0 - k * 2.0
-		for h in [[-0.4, -0.05], [0.15, -0.15], [0.32, 0.15], [-0.15, 0.2]]:
-			var hp := x + Vector2(h[0] * rx, h[1] * ry)
-			draw_rect(Rect2(hp + Vector2(-3, -6), Vector2(6, 6)), Color(1, 0.97, 0.9, a))
-			draw_colored_polygon(PackedVector2Array([hp + Vector2(-5, -6), hp + Vector2(0, -11), hp + Vector2(5, -6)]), Color(0.75, 0.25, 0.2, a))
+	var u := rx / 224.0          # detail scale follows the disc
+	var flat := 1.0 - minf(1.0, k * 1.6)   # small details fade as it rounds out
+	var P := func(a: float, b: float) -> Vector2: return x + Vector2(a * rx, b * ry)
+	# shallow water around the coasts
+	for e in CONTS:
+		Art.ellipse(self, P.call(e[0], e[1]), e[2] * rx + 7 * u, e[3] * ry + 5 * u, Color(0.55, 0.82, 0.95, 0.45))
+	# beaches, then grassland
+	for e in CONTS:
+		Art.ellipse(self, P.call(e[0], e[1]), e[2] * rx + 2.5 * u, e[3] * ry + 2 * u, Color("e6d6a0"))
+	for e in CONTS:
+		Art.ellipse(self, P.call(e[0], e[1]), e[2] * rx, e[3] * ry, Color("4caf50"))
+	# darker inland plains and a desert
+	for e in [[-0.3, -0.12, 0.2, 0.28], [0.08, -0.32, 0.16, 0.2], [0.33, 0.1, 0.14, 0.24]]:
+		Art.ellipse(self, P.call(e[0], e[1]), e[2] * rx, e[3] * ry, Color("3f9a46"))
+	Art.ellipse(self, P.call(0.1, -0.1), 0.08 * rx, 0.1 * ry, Color("c9a86a"))
+	Art.ellipse(self, P.call(-0.25, 0.05), 0.06 * rx, 0.12 * ry, Color("8d6e4a"))
+	Art.ellipse(self, P.call(0.1, -0.1), 0.05 * rx, 0.05 * ry, Color("d8bc80"))
+	# lake and a winding river to the sea
+	Art.ellipse(self, P.call(-0.42, -0.2), 0.045 * rx, 0.07 * ry, Color("5fa8e8"))
+	var river := PackedVector2Array()
+	for i in 9:
+		var f := i / 8.0
+		river.append(P.call(-0.42 + f * 0.2 + sin(f * 9.0) * 0.03, -0.2 + f * 0.5))
+	draw_polyline(river, Color("5fa8e8"), maxf(1.0, 2.0 * u), true)
+	# forests
+	for f in [[-0.5, 0.0], [-0.46, 0.05], [-0.4, -0.02], [0.0, -0.4], [0.05, -0.36], [0.1, -0.42], [0.38, 0.22], [0.42, 0.18], [-0.1, 0.32], [-0.05, 0.28]]:
+		var fp: Vector2 = P.call(f[0], f[1])
+		draw_circle(fp, 4.5 * u, Color("2e7d32"))
+		draw_circle(fp + Vector2(-1, -1.5) * u, 2.2 * u, Color("43a047"))
+	# mountain ranges with snow caps
+	for m in [[-0.3, -0.25, 1.0], [-0.24, -0.27, 0.8], [-0.18, -0.24, 0.9], [0.28, -0.02, 1.0], [0.33, 0.0, 0.75], [-0.02, 0.18, 0.7]]:
+		var mp: Vector2 = P.call(m[0], m[1])
+		var mh: float = 13.0 * u * m[2] * (1.0 - k * 0.6)
+		var mw: float = 9.0 * u * m[2]
+		draw_colored_polygon(PackedVector2Array([mp + Vector2(-mw, 0), mp + Vector2(0, -mh), mp + Vector2(mw, 0)]), Color("7b6a58"))
+		draw_colored_polygon(PackedVector2Array([mp + Vector2(0, -mh), mp + Vector2(mw, 0), mp + Vector2(mw * 0.2, 0)]), Color("65564a"))
+		draw_colored_polygon(PackedVector2Array([mp + Vector2(-mw * 0.35, -mh * 0.65), mp + Vector2(0, -mh), mp + Vector2(mw * 0.35, -mh * 0.65)]), Color("f4f4f4"))
+	# polar ice
+	Art.ellipse(self, P.call(-0.2, -0.32), 0.05 * rx, 0.06 * ry, Color(1, 1, 1, 0.8))
+	Art.ellipse(self, P.call(0.28, -0.1), 0.04 * rx, 0.05 * ry, Color(1, 1, 1, 0.8))
+	if flat > 0.0:
+		# little towns with roofs and a lighthouse
+		for h in [[-0.4, -0.05], [0.15, -0.15], [0.32, 0.15], [-0.15, 0.2], [0.0, 0.0], [-0.33, 0.14]]:
+			var hp: Vector2 = P.call(h[0], h[1])
+			draw_rect(Rect2(hp + Vector2(-3, -6), Vector2(6, 6)), Color(1, 0.97, 0.9, flat))
+			draw_colored_polygon(PackedVector2Array([hp + Vector2(-5, -6), hp + Vector2(0, -11), hp + Vector2(5, -6)]), Color(0.75, 0.25, 0.2, flat))
+			draw_rect(Rect2(hp + Vector2(5, -4), Vector2(4, 4)), Color(1, 0.94, 0.8, flat))
+		var lh: Vector2 = P.call(0.52, 0.05)
+		draw_rect(Rect2(lh + Vector2(-2, -12), Vector2(4, 12)), Color(1, 1, 1, flat))
+		draw_rect(Rect2(lh + Vector2(-2, -8), Vector2(4, 3)), Color(0.85, 0.2, 0.2, flat))
+		Art.glow(self, lh + Vector2(0, -13), 10, Color(1, 0.9, 0.4, 0.6 * flat * (0.6 + 0.4 * sin(t * 3.0))))
+		# boats sailing round the edge of the world
+		for i in 3:
+			var a := t * 0.12 + i * 2.1
+			var bp := x + Vector2(cos(a) * rx * 0.8, sin(a) * ry * 0.78)
+			if (bp - x).length() < 1:
+				continue
+			draw_colored_polygon(PackedVector2Array([bp + Vector2(-5, 0), bp + Vector2(5, 0), bp + Vector2(3, 3), bp + Vector2(-3, 3)]), Color(0.45, 0.3, 0.18, flat))
+			draw_colored_polygon(PackedVector2Array([bp + Vector2(0, -8), bp + Vector2(0, -1), bp + Vector2(5, -1)]), Color(1, 1, 1, flat))
+			draw_line(bp + Vector2(-8, 4), bp + Vector2(-14, 4), Color(1, 1, 1, 0.4 * flat), 1.0)
+	# drifting clouds over everything
+	for i in 4:
+		var cx := fmod(t * 0.02 + i * 0.27, 1.0) * 1.4 - 0.7
+		var cy: float = [-0.3, 0.1, -0.05, 0.35][i]
+		if absf(cx) > 0.6:
+			continue
+		var cp: Vector2 = P.call(cx, cy)
+		var ca := 0.55 * (1.0 - absf(cx) / 0.6)
+		Art.ellipse(self, cp, 14 * u, 4 * u + 3 * k * u, Color(1, 1, 1, ca))
+		Art.ellipse(self, cp + Vector2(8, -2) * u, 9 * u, 4 * u + 2 * k * u, Color(1, 1, 1, ca))
+
+
+func _draw_rim(x: Vector2, rx: float, ry: float, k: float) -> void:
+	## The famous ice wall around the edge of a flat world, plus rocks hanging underneath.
+	var a := 1.0 - minf(1.0, k * 2.2)
+	if a <= 0.0:
+		return
+	for i in 64:
+		var ang := i / 64.0 * TAU
+		var p := x + Vector2(cos(ang) * rx, sin(ang) * ry)
+		var hh := (5.0 + 3.0 * sin(i * 2.7)) * (rx / 224.0)
+		draw_colored_polygon(PackedVector2Array([p + Vector2(-3.5, 1), p + Vector2(0, -hh), p + Vector2(3.5, 1)]), Color(0.93, 0.97, 1, a))
+		draw_line(p + Vector2(0, -hh), p + Vector2(1.5, 0), Color(0.75, 0.86, 0.95, a), 1.0)
+
+
+func _draw_underside(x: Vector2, rx: float, ry: float, edge: float) -> void:
+	var a := clampf(edge / 16.0, 0.0, 1.0)
+	for i in 9:
+		var f := -0.85 + i * 0.21
+		var p := x + Vector2(f * rx, sqrt(maxf(0.0, 1.0 - f * f)) * ry + edge)
+		var hh := (10.0 + 8.0 * absf(sin(i * 1.9))) * a
+		draw_colored_polygon(PackedVector2Array([p + Vector2(-7, -1), p + Vector2(7, -1), p + Vector2(1, hh)]), Color("4a2f18"))
+		if i % 3 == 1:
+			draw_polyline(PackedVector2Array([p + Vector2(4, 0), p + Vector2(6, hh * 0.6), p + Vector2(3, hh * 1.2)]), Color(0.42, 0.3, 0.16, a), 1.2)
 
 
 func _draw_earth() -> void:
@@ -320,6 +404,7 @@ func _draw_earth() -> void:
 			var len := (30.0 + 20.0 * sin(t * 3.0 + d.o * 7.0)) * (1.0 - k)
 			Art.vgrad(self, Rect2(ep + Vector2(-2, 0), Vector2(4, len)), Color(0.55, 0.78, 1, 0.55 * (1 - k)), Color(0.55, 0.78, 1, 0))
 	if edge > 0.5:
+		_draw_underside(x, rx, ry, edge)
 		Art.ellipse(self, x + Vector2(0, edge), rx, ry, Color("5b3a1e"))
 		draw_rect(Rect2(x.x - rx, x.y, rx * 2, edge), Color("5b3a1e"))
 		for i in 6:
@@ -357,6 +442,7 @@ func _draw_earth() -> void:
 		Art.glow(self, x, maxf(rx, ry) * 1.35, Color(0.4, 0.7, 1, 0.12 * k))
 	if k < 0.5:
 		Art.ellipse_line(self, x, rx, ry, Color(0.91, 0.95, 1, 1.0 - k * 2.0), 6.0)
+	_draw_rim(x, rx, ry, k)
 	var v := _valve()
 	draw_rect(Rect2(v + Vector2(-6, -7), Vector2(12, 14)), Color("c9ced6"))
 	draw_rect(Rect2(v + Vector2(4, -4), Vector2(6, 8)), Color("8a929c"))
@@ -371,7 +457,7 @@ func _draw_pump() -> void:
 	var hy := _handle_y()
 	var hose := PackedVector2Array()
 	var p0 := Vector2(x, PUMP_BOTTOM - 8)
-	var c1 := Vector2(x - 20, PUMP_BOTTOM + 70)
+	var c1 := Vector2(x - 10, PUMP_BOTTOM + 60)
 	var c2 := nozzle + Vector2(40, 80)
 	for i in 25:
 		var k := i / 24.0
@@ -382,7 +468,12 @@ func _draw_pump() -> void:
 	if phase == "hose" and nozzle_mode == "rest" and not hold and grab == "":
 		draw_arc(nozzle, 16, 0, TAU, 24, Color(1, 0.82, 0.25, 0.5 + 0.4 * sin(t * 5.0)), 2.5, true)
 	draw_rect(Rect2(x - 4, hy, 8, PUMP_TOP - hy + 10), Color("9aa3ad"))
+	draw_rect(Rect2(x - 4, hy, 3, PUMP_TOP - hy + 10), Color("c4cbd3"))
 	Art.round_rect(self, Rect2(x - 50, hy - 12, 100, 22), 10, Color("e04f3a"))
+	Art.round_rect(self, Rect2(x - 46, hy - 10, 92, 6), 3, Color(1, 1, 1, 0.22))
+	for gx in [-38, -30, 30, 38]:
+		draw_line(Vector2(x + gx, hy - 6), Vector2(x + gx, hy + 7), Color(0, 0, 0, 0.18), 2.0)
+	draw_rect(Rect2(x - 28, PUMP_TOP - 4, 56, 6), Color("8a2a1c"))
 	Art.vgrad(self, Rect2(x - 24, PUMP_TOP, 48, PUMP_BOTTOM - PUMP_TOP), Color("ef6a52"), Color("b83a28"))
 	draw_rect(Rect2(x - 18, PUMP_TOP + 6, 8, PUMP_BOTTOM - PUMP_TOP - 12), Color(1, 1, 1, 0.18))
 	draw_rect(Rect2(x - 40, PUMP_BOTTOM, 80, 10), Color("3a3a3a"))

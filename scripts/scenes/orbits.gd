@@ -158,13 +158,13 @@ func _drop(b: Dictionary, p: Vector2) -> void:
 			return
 		b.mode = "geo"
 		Sfx.tone(150, 0.15, 0.05, "sawtooth")
-		Dialog.quip(["Close! The middle. The very middle.", "That's not the center. That's just... somewhere.", "Think bigger. Think central."].pick_random(), true)
+		Dialog.say([["Close! The middle. The very middle.", "That's not the center. That's just... somewhere.", "Think bigger. Think central."].pick_random()])
 		return
 	if b == pluto:
 		_fly(b, b.slot, "tray")
 		for i in 3:
 			Sfx.tone([330, 262, 196][i], 0.25, 0.05, "sine", i * 0.18)
-		Dialog.quip(PLUTO_LINES[mini(pluto_tries, PLUTO_LINES.size() - 1)], true)
+		Dialog.say([PLUTO_LINES[mini(pluto_tries, PLUTO_LINES.size() - 1)]])
 		pluto_tries += 1
 		return
 	var d := p.distance_to(C)
@@ -180,7 +180,7 @@ func _drop(b: Dictionary, p: Vector2) -> void:
 		placed += 1
 		Sfx.tone(784, 0.3, 0.06)
 		Sfx.tone(1046, 0.3, 0.06, "triangle", 0.08)
-		Dialog.quip(b.p.yes, true)
+		Dialog.say([b.p.yes])
 		if b.id == "saturn":
 			mic_t = 7.0
 		if placed == PL.size():
@@ -192,7 +192,7 @@ func _drop(b: Dictionary, p: Vector2) -> void:
 		ring_flash[ring] = 1.0
 		mistakes += 1
 		Sfx.tone(140, 0.2, 0.06, "sawtooth")
-		Dialog.quip(b.p.quip, true)
+		Dialog.say([b.p.quip])
 
 
 # ---------------------------------------------------------------- story
@@ -228,6 +228,8 @@ func _sun_placed() -> void:
 	phase = "moving"
 	_fly(sun, C, "center")
 	Sfx.boom(0.4)
+	for b in bodies:
+		b.trail = []
 	var order := range(slots.size())
 	order.shuffle()
 	var i := 0
@@ -235,7 +237,6 @@ func _sun_placed() -> void:
 		if b == sun or b == pluto:
 			continue
 		b.slot = slots[order[i]]
-		b.trail = []
 		_delayed_fly(b, 0.15 + i * 0.09)
 		i += 1
 	pluto.slot = slots[order[PL.size()]]

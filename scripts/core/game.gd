@@ -34,6 +34,7 @@ var autotest := false     # developer self-test: dialogue advances by itself
 var main: Node = null      # set by main.gd
 var world: Node2D = null   # parent of the active scene
 var snap: Sprite2D = null  # screenshot used for the zoom transition
+var feather: Node2D = null # soft edge around the growing chapter
 var scene: Node = null
 
 
@@ -197,6 +198,8 @@ func zoom_to(index: int, focus: Vector2 = Vector2(640, 300), duration := 1.6) ->
 	await tw.finished
 	snap.visible = false
 	snap.texture = null
+	if feather:
+		feather.show_rect(Rect2(0, 0, 1280, 720), 0.0)
 	world.position = Vector2.ZERO
 	world.scale = Vector2.ONE
 	transitioning = false
@@ -213,3 +216,6 @@ func _zoom_step(k: float, focus: Vector2, px: Vector2) -> void:
 	var s_new := lerpf(0.06, 1.0, k * k * (3.0 - 2.0 * k))
 	world.scale = Vector2(s_new, s_new)
 	world.position = focus * (1.0 - s_new)
+	if feather:
+		var fade := 1.0 - smoothstep(0.8, 1.0, k)
+		feather.show_rect(Rect2(world.position, Vector2(1280, 720) * s_new), fade)

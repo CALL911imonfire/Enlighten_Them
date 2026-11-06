@@ -55,6 +55,7 @@ var dl_p := -1.0
 var dl_line := -1
 var said := {}
 var mail := -1.0
+var mail_pts := PackedVector2Array()
 var glow := 0.0
 var hint_btn: Button
 
@@ -239,7 +240,8 @@ func _solved() -> void:
 	Sfx.tone(880, 0.2, 0.05, "triangle", 0.12)
 	if era_i < 2:
 		mail = 0.0
-		await wait(0.9)
+		mail_pts = _mail_path()
+		await wait(2.4)
 		await Dialog.say(DONE[era_i])
 		_set_era(era_i + 1)
 	else:
@@ -343,7 +345,7 @@ func tick(dt: float) -> void:
 			c.a *= pow(0.0001, dt)
 			c.flash = maxf(0, c.flash - dt)
 	if mail >= 0:
-		mail = minf(1, mail + dt * 1.2)
+		mail = minf(1, mail + dt * 0.45)
 	if phase == "play" and time_max > 0 and not busy():
 		time_left -= dt
 		if not picked_up and time_left < time_max * 0.55:
@@ -368,27 +370,139 @@ func tick(dt: float) -> void:
 func _end_icon(p: Vector2, kind: String, on: bool) -> void:
 	match kind:
 		"house":
-			draw_rect(Rect2(p + Vector2(-18, -6), Vector2(36, 26)), Color("e8d6b0"))
-			draw_colored_polygon(PackedVector2Array([p + Vector2(-24, -6), p + Vector2(0, -26), p + Vector2(24, -6)]), Color("aa3333"))
-			draw_rect(Rect2(p + Vector2(-5, 6), Vector2(10, 14)), Color("5a3a20"))
+			# cottage with a chimney, windows, door and a mailbox
+			draw_rect(Rect2(p + Vector2(10, -30), Vector2(7, 14)), Color("7a4a3a"))
+			if on:
+				for k in 3:
+					var sp := fmod(t * 0.6 + k / 3.0, 1.0)
+					draw_circle(p + Vector2(13 + sin(sp * 6.0) * 3, -32 - sp * 22), 3 + sp * 4, Color(0.9, 0.9, 0.9, 0.45 * (1 - sp)))
+			draw_rect(Rect2(p + Vector2(-19, -6), Vector2(38, 27)), Color("efe0bc"))
+			for k in 4:
+				draw_line(p + Vector2(-19, -1 + k * 6), p + Vector2(19, -1 + k * 6), Color(0, 0, 0, 0.06), 1.0)
+			draw_colored_polygon(PackedVector2Array([p + Vector2(-25, -5), p + Vector2(0, -28), p + Vector2(25, -5)]), Color("b33a32"))
+			draw_line(p + Vector2(-25, -5), p + Vector2(25, -5), Color("7e2520"), 2.0)
+			draw_rect(Rect2(p + Vector2(-4, 6), Vector2(9, 15)), Color("5a3a20"))
+			draw_circle(p + Vector2(3, 14), 1, Color("e7c14a"))
+			for wx in [-15.0, 9.0]:
+				draw_rect(Rect2(p + Vector2(wx, 0), Vector2(7, 7)), Color("ffe08a") if on else Color("8fb3cc"))
+				draw_line(p + Vector2(wx + 3.5, 0), p + Vector2(wx + 3.5, 7), Color("5a3a20"), 1.0)
+			draw_rect(Rect2(p + Vector2(-30, 8), Vector2(2, 13)), Color("5a3a20"))
+			Art.round_rect(self, Rect2(p + Vector2(-34, 3), Vector2(10, 7)), 3, Color("3a5a9a"))
 		"post office":
-			draw_rect(Rect2(p + Vector2(-20, -14), Vector2(40, 34)), Color("ccccdd"))
-			draw_rect(Rect2(p + Vector2(-20, -22), Vector2(40, 10)), Color("2b4a8a"))
-			txt(p + Vector2(0, -14), "POST", 7, Color.WHITE)
-			draw_rect(Rect2(p + Vector2(-5, 6), Vector2(10, 14)), Color("5a3a20"))
+			# columns, a blue sign, flag and a red post box
+			draw_rect(Rect2(p + Vector2(-22, -14), Vector2(44, 35)), Color("d9d6e6"))
+			draw_rect(Rect2(p + Vector2(-25, -24), Vector2(50, 11)), Color("2b4a8a"))
+			txt(p + Vector2(0, -15), "POST", 7, Color.WHITE)
+			for cx in [-18.0, -9.0, 6.0, 15.0]:
+				draw_rect(Rect2(p + Vector2(cx, -12), Vector2(3, 33)), Color("f2f0f8"))
+			draw_rect(Rect2(p + Vector2(-5, 7), Vector2(10, 14)), Color("5a3a20"))
+			draw_rect(Rect2(p + Vector2(-25, 20), Vector2(50, 3)), Color("b8b4c8"))
+			draw_line(p + Vector2(18, -24), p + Vector2(18, -40), Color("777777"), 1.5)
+			var wv := sin(t * 4.0) * 1.5
+			draw_colored_polygon(PackedVector2Array([p + Vector2(18, -40), p + Vector2(29, -38 + wv), p + Vector2(18, -34)]), Color("d64535"))
+			Art.round_rect(self, Rect2(p + Vector2(-34, 6), Vector2(9, 15)), 4, Color("d64535"))
+			draw_rect(Rect2(p + Vector2(-33, 10), Vector2(7, 2)), Color("222222"))
 		"telegraph office":
-			draw_rect(Rect2(p + Vector2(-18, -14), Vector2(36, 32)), Color("d8c39a"))
-			draw_rect(Rect2(p + Vector2(-22, -20), Vector2(44, 8)), Color("6b4a2a"))
-			draw_rect(Rect2(p + Vector2(-8, 0), Vector2(16, 6)), Color("222222"))
+			# station with a sign, window and telegraph pole
+			draw_rect(Rect2(p + Vector2(-20, -14), Vector2(40, 35)), Color("d8c39a"))
+			for k in 6:
+				draw_line(p + Vector2(-20, -10 + k * 6), p + Vector2(20, -10 + k * 6), Color(0, 0, 0, 0.08), 1.0)
+			draw_colored_polygon(PackedVector2Array([p + Vector2(-25, -13), p + Vector2(-18, -24), p + Vector2(18, -24), p + Vector2(25, -13)]), Color("6b4a2a"))
+			draw_rect(Rect2(p + Vector2(-14, -8), Vector2(28, 7)), Color("2a2a2a"))
+			txt(p + Vector2(0, -2.5), "TELEGRAPH", 4, Color("f2e6c0"))
+			draw_rect(Rect2(p + Vector2(-13, 3), Vector2(10, 9)), Color("ffe08a") if on else Color("6a8aa0"))
+			draw_rect(Rect2(p + Vector2(3, 5), Vector2(9, 16)), Color("5a3a20"))
+			draw_line(p + Vector2(28, 21), p + Vector2(28, -34), Color("6b4a2a"), 3.0)
+			draw_line(p + Vector2(21, -28), p + Vector2(35, -28), Color("6b4a2a"), 2.0)
+			for ix in [22.0, 34.0]:
+				draw_circle(p + Vector2(ix, -30), 1.5, Color("88bbdd"))
 		"computer":
-			Art.round_rect(self, Rect2(p + Vector2(-20, -22), Vector2(40, 30)), 3, Color("d9d4c4"))
-			draw_rect(Rect2(p + Vector2(-15, -17), Vector2(30, 20)), Color("22aa66") if on else Color("112233"))
-			draw_rect(Rect2(p + Vector2(-24, 10), Vector2(48, 10)), Color("d9d4c4"))
+			# beige PC: monitor, tower, keyboard, mouse
+			draw_rect(Rect2(p + Vector2(18, -18), Vector2(12, 34)), Color("cfc9b6"))
+			draw_rect(Rect2(p + Vector2(20, -12), Vector2(8, 2)), Color("555555"))
+			draw_circle(p + Vector2(24, 8), 1.5, Color("7fe08a") if on else Color("555555"))
+			Art.round_rect(self, Rect2(p + Vector2(-22, -24), Vector2(38, 32)), 3, Color("d9d4c4"))
+			draw_rect(Rect2(p + Vector2(-18, -20), Vector2(30, 22)), Color("1e5aa0") if on else Color("112233"))
+			if on:
+				draw_rect(Rect2(p + Vector2(-16, -18), Vector2(14, 2)), Color(1, 1, 1, 0.7))
+				draw_rect(Rect2(p + Vector2(-16, -14), Vector2(22, 2)), Color(1, 1, 1, 0.4))
+			draw_rect(Rect2(p + Vector2(-8, 8), Vector2(10, 4)), Color("cfc9b6"))
+			Art.round_rect(self, Rect2(p + Vector2(-24, 13), Vector2(36, 7)), 2, Color("e2ddcc"))
+			for k in 8:
+				draw_rect(Rect2(p + Vector2(-22 + k * 4, 15), Vector2(3, 2)), Color("b5ae98"))
+			Art.ellipse(self, p + Vector2(17, 18), 3, 2, Color("e2ddcc"))
 		_:
-			var col := Color("bfeeff") if on else Color("99aabb")
-			for c in [[-10, 0, 14], [8, -4, 16], [0, 8, 12], [16, 8, 10]]:
+			# the internet: a glowing cloud full of servers
+			var col := Color("bfeeff") if on else Color("8a9bb0")
+			if on:
+				Art.glow(self, p, 50, Color(0.5, 0.88, 1, 0.35))
+			for c in [[-12, 2, 13], [6, -6, 16], [0, 8, 12], [18, 6, 11], [-20, 10, 8]]:
 				draw_circle(p + Vector2(c[0], c[1]), c[2], col)
-			txt(p + Vector2(4, 6), "WWW", 8, Color("14203a"))
+			for k in 3:
+				var r := Rect2(p + Vector2(-14 + k * 11, -2), Vector2(9, 14))
+				draw_rect(r, Color("2a3550"))
+				for l in 3:
+					var ok := on and sin(t * 8 + k * 2 + l) > 0
+					draw_rect(Rect2(r.position + Vector2(2, 2 + l * 4), Vector2(2, 2)), Color("7fe08a") if ok else Color("44506a"))
+			txt(p + Vector2(4, 22), "WWW", 7, Color("14203a"))
+
+
+## Developer helper (screenshots): turn every tile to the solution.
+func _dev_solve() -> void:
+	for y in n:
+		for x in n:
+			if sol[y][x] != 0:
+				grid[y][x].m = sol[y][x]
+	_compute()
+
+
+func _mail_path() -> PackedVector2Array:
+	## Centers of the lit tiles from the source to the destination, in order.
+	var cs := GW / n
+	var ly := GY + rs * cs + cs / 2
+	var ry := GY + rt * cs + cs / 2
+	var start := "0,%d" % rs
+	var goal := "%d,%d" % [n - 1, rt]
+	var prev := {start: ""}
+	var q := [[0, rs]]
+	while q.size() > 0:
+		var cur: Array = q.pop_front()
+		var m: int = grid[cur[1]][cur[0]].m
+		for d in DIRS:
+			if not (m & d[0]):
+				continue
+			var a: int = cur[0] + d[1]
+			var b: int = cur[1] + d[2]
+			var k := "%d,%d" % [a, b]
+			if not lit.has(k) or prev.has(k) or not (grid[b][a].m & d[3]):
+				continue
+			prev[k] = "%d,%d" % cur
+			q.append([a, b])
+	var cells: Array = []
+	var k2 := goal
+	while k2 != "" and prev.has(k2):
+		cells.push_front(k2)
+		k2 = prev[k2]
+	var pts := PackedVector2Array([Vector2(30, ly), Vector2(GX, ly)])
+	for c in cells:
+		var xy: PackedStringArray = c.split(",")
+		pts.append(Vector2(GX + int(xy[0]) * cs + cs / 2, GY + int(xy[1]) * cs + cs / 2))
+	pts.append(Vector2(GX + GW, ry))
+	pts.append(Vector2(VW - 30, ry))
+	return pts
+
+
+func _along(pts: PackedVector2Array, f: float) -> Vector2:
+	var total := 0.0
+	for i in pts.size() - 1:
+		total += pts[i].distance_to(pts[i + 1])
+	var want := total * clampf(f, 0.0, 1.0)
+	for i in pts.size() - 1:
+		var seg := pts[i].distance_to(pts[i + 1])
+		if want <= seg:
+			return pts[i].lerp(pts[i + 1], want / maxf(seg, 0.001))
+		want -= seg
+	return pts[pts.size() - 1]
 
 
 func paint() -> void:
@@ -404,10 +518,18 @@ func paint() -> void:
 	var ly := GY + rs * cs + cs / 2
 	var ry := GY + rt * cs + cs / 2
 	var lc := Color(era.lit) if lit.size() > 0 else Color(era.line)
-	draw_line(Vector2(30, ly), Vector2(GX, ly), lc, cs * 0.18)
-	draw_line(Vector2(GX + GW, ry), Vector2(VW - 30, ry), Color(era.lit) if won else Color(era.line), cs * 0.18)
-	_end_icon(Vector2(30, ly - 10), era.src, true)
-	_end_icon(Vector2(VW - 30, ry - 10), era.dst, won)
+	var sw := cs * (0.26 if era_i == 0 else 0.12)
+	var halo := Color(era.tile).lerp(Color(era.lit), 0.35)
+	if lit.size() > 0:
+		draw_line(Vector2(30, ly), Vector2(GX + 2, ly), halo, sw + cs * 0.12)
+	if won:
+		draw_line(Vector2(GX + GW - 2, ry), Vector2(VW - 30, ry), halo, sw + cs * 0.12)
+	draw_line(Vector2(30, ly), Vector2(GX + 2, ly), lc, sw)
+	draw_line(Vector2(GX + GW - 2, ry), Vector2(VW - 30, ry), Color(era.lit) if won else Color(era.line), sw)
+	for e in [[Vector2(14, ly - 30), era.src, true], [Vector2(VW - 14, ry - 30), era.dst, won]]:
+		draw_set_transform_matrix(cam * Transform2D(0, Vector2(1.6, 1.6), 0, e[0]))
+		_end_icon(Vector2.ZERO, e[1], e[2])
+		draw_set_transform_matrix(cam)
 	for y in n:
 		for x in n:
 			var c: Dictionary = grid[y][x]
@@ -429,9 +551,12 @@ func paint() -> void:
 			var col := Color(era.lit) if on else Color(era.line)
 			var wdt := cs * (0.26 if era_i == 0 else 0.12)
 			if on:
+				# solid (not see-through) halo so overlapping arms and corners all glow the same
+				var hw := wdt + cs * 0.12
+				draw_circle(Vector2.ZERO, hw / 2, halo)
 				for d in DIRS:
 					if c.m & d[0]:
-						draw_line(Vector2.ZERO, Vector2(d[1], d[2]) * cs / 2, Color(col.r, col.g, col.b, 0.25), wdt * 2.2)
+						draw_line(Vector2.ZERO, Vector2(d[1], d[2]) * cs / 2, halo, hw)
 			for d in DIRS:
 				if c.m & d[0]:
 					draw_line(Vector2.ZERO, Vector2(d[1], d[2]) * cs / 2, col, wdt)
@@ -445,7 +570,7 @@ func paint() -> void:
 						draw_circle(Vector2(d[1], d[2]) * cs / 2 * k, 2.5, Color.WHITE)
 			draw_set_transform_matrix(cam)
 	if mail >= 0 and era_i < 2:
-		var mp := Vector2(30 + (VW - 60) * mail, ly + (ry - ly) * mail)
+		var mp := _along(mail_pts, mail) + Vector2(0, sin(t * 10.0) * 2.0)
 		draw_rect(Rect2(mp - Vector2(12, 8), Vector2(24, 16)), Color.WHITE)
 		draw_polyline(PackedVector2Array([mp + Vector2(-12, -8), mp + Vector2(0, 1), mp + Vector2(12, -8)]), Color("999999"), 1.0)
 	draw_rect(Rect2(-900, -300, VW + 1800, 364), Color(0, 0, 0, 0.3))
@@ -461,9 +586,6 @@ func paint() -> void:
 	light(Vector2(40, 34 + sin(t * 1.6) * 3), 14, hat)
 	var cs2 := 0.16
 	carl(Vector2(560, 62 - Art.carl_feet() * cs2 + 24), cs2, {"flip": true, "glow": glow, "talk": Dialog.blocking and Dialog._speaker == "carl"})
-	for i in 4:
-		var c := Color(0.5, 0.88, 1) if i <= era_i or phase in ["download", "end"] else Color(1, 1, 1, 0.25)
-		txt(Vector2(150 + i * 100, 590), ["Letters", "Telegraph", "Dial-up", "Download"][i], 13, c)
 	if time_max > 0 and phase in ["play", "talk"] and era_i == 2:
 		var f := clampf(time_left / time_max, 0, 1)
 		Art.round_rect(self, Rect2(70, 76, 460, 10), 5, Color(0, 0, 0, 0.4))

@@ -12,6 +12,13 @@ func _ready() -> void:
 	world.name = "World"
 	world.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(world)
+	var flayer := CanvasLayer.new()
+	flayer.layer = 5
+	add_child(flayer)
+	var feather: Node2D = load("res://scripts/core/feather.gd").new()
+	feather.visible = false
+	flayer.add_child(feather)
+	Game.feather = feather
 	var layer := CanvasLayer.new()
 	layer.layer = 10
 	add_child(layer)
@@ -27,6 +34,9 @@ func _ready() -> void:
 		Game.autotest = true
 		var driver: Node = load("res://tools/autotest.gd").new()
 		add_child(driver)
+	for a in OS.get_cmdline_user_args():
+		if str(a).begins_with("--peek="):
+			add_child(load("res://tools/peek.gd").new())
 	Game.start(arg)
 
 

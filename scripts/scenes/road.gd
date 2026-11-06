@@ -74,6 +74,7 @@ var arms := 0
 var eyes := 1
 var wings := 0
 var clouds: Array = []
+var head_legs := false   # every leg was stuck on top of Carl's head
 
 
 func setup() -> void:
@@ -83,6 +84,10 @@ func setup() -> void:
 	arms = Game.carl_count("arm")
 	eyes = Game.carl_count("eye")
 	wings = Game.carl_count("wing")
+	head_legs = legs > 0
+	for q in Game.carl.get("parts", []):
+		if q.type == "leg" and sin(float(q.a)) > -0.3:
+			head_legs = false
 	for i in 7:
 		clouds.append({"x": i * 170.0, "y": 50.0 + (i * 53) % 150, "s": 0.7 + (i % 3) * 0.25})
 	_set_stage(0)
@@ -92,10 +97,13 @@ func setup() -> void:
 var enter_x := -80.0   # Carl climbing out of the sea at the start
 
 
-func _hill(x: float) -> float:
-	## Height of the little seaside hill at the start (world x, before scrolling).
-	var d := (x - 92.0) / 72.0
-	return maxf(0.0, 1.0 - d * d) * 34.0
+const SHORE := 135.0     # world x where the grass ends and the beach slopes into the sea
+const SEA_Y := GROUND + 6.0
+
+
+func _coast(x: float) -> float:
+	## Ground height (screen y) of the sloping beach at the start (world x, before scrolling).
+	return GROUND + maxf(0.0, SHORE - x) * 0.32
 
 
 func begin() -> void:
@@ -103,7 +111,13 @@ func begin() -> void:
 		await get_tree().process_frame
 	phase = "talk"
 	var lines := INTRO.duplicate()
-	if legs == 1:
+	if head_legs:
+		var one := legs == 1
+		lines[1] = "CARL:Then let us proceed. Floppedal locomotion: engaged."
+		lines.insert(2, "CARL:And kindly stop rushing me. I do technically possess %s, but you attached %s to my head, which renders %s roughly as useful as a decorative hat." % [
+			"a leg" if one else "legs", "it" if one else "them", "it" if one else "them"])
+	elif legs == 1:
+		lines[1] = "CARL:Then let us proceed. Unipedal locomotion: engaged."
 		lines.insert(2, "CARL:And kindly stop rushing me. I have precisely one leg.")
 	elif legs >= 4:
 		lines.insert(2, "CARL:With this many legs, I am essentially a myriapod. Observe me shuttle.")
@@ -233,6 +247,9 @@ func _crash(why := "") -> void:
 	var set: Array = CRASH[st]
 	var lines: Array = set[crash_n[st] % set.size()].duplicate()
 	crash_n[st] += 1
+	if head_legs and str(lines[0]).begins_with("Remember: the legs go under you"):
+		lines[1] = "CARL:You installed my %s on top of my head. Short of a handstand, %s cannot go under me. Perhaps review your own engineering before critiquing mine." % [
+			"leg" if legs == 1 else "legs", "it" if legs == 1 else "they"]
 	# Carl's body has opinions
 	if st <= 1 and eyes == 1 and not body_said.has("oneeye") and why == "obstacle":
 		body_said["oneeye"] = true
@@ -240,7 +257,7 @@ func _crash(why := "") -> void:
 	elif st <= 2 and eyes >= 3 and not body_said.has("manyeyes"):
 		body_said["manyeyes"] = true
 		lines = ["CARL:With this many eyes there is simply too much to observe. I was distracted by a remarkably well-formed cloud.", "Focus, Carl. Pick an eye and use it."]
-	elif st <= 1 and legs == 1 and not body_said.has("oneleg"):
+	elif st <= 1 and legs == 1 and not head_legs and not body_said.has("oneleg"):
 		body_said["oneleg"] = true
 		lines = ["CARL:Stop rushing me. I have precisely one leg. Hopping is a craft.", "You chose to keep one leg. Well, someone did."]
 	await wait(0.7)
@@ -326,7 +343,12 @@ func tick(dt: float) -> void:
 	var prog := _progress()
 	if prog > 0.5 and not mid_said:
 		mid_said = true
-		for l in MID[st]:
+		var mid: Array = MID[st]
+		if st == 0 and head_legs:
+			mid = ["CARL:Flop. Flop. Flop. Locomotion by a series of controlled collapses. The humans call this being a toddler."]
+		elif st == 0 and legs == 1:
+			mid = ["CARL:Left, left, left, left... One leg makes for a rather monotonous march. The humans would call it a limp. I call it consistency."]
+		for l in mid:
 			Dialog.quip(l)
 		if st == 4 and wings > 0 and not body_said.has("wings"):
 			body_said["wings"] = true
@@ -372,15 +394,16 @@ func _draw_carl() -> void:
 		0, 1:
 			if phase == "enter" or (st == 0 and enter_x < CX0):
 				var ex := enter_x
-				var ey := GROUND - _hill(ex) + maxf(0.0, (14.0 - ex) * 0.8)
-				carl(Vector2(ex, ey - feet), cs, {"walk": 0.45, "walk_speed": 9.0, "tilt": -_hill_slope(ex) * 0.8})
+				var ey := _coast(ex)
+				carl(Vector2(ex, ey - feet), cs, {"walk": 0.45, "walk_speed": 9.0, "tilt": -0.3 if ex < SHORE else 0.0})
 				return
 			var lean := 0.12 if st == 1 else 0.0
 			var air := not ground
+			var fade := 1.0 - clampf((y - GROUND) / 34.0, 0.0, 1.0) if falling else 1.0
 			carl(Vector2(x, y - feet), cs, {"walk": 0.0 if air else (0.7 if st == 1 else 0.45), "walk_speed": 16.0 if st == 1 else 9.0, "air": air,
-				"tilt": lean - (vy / 3000.0 if air else 0.0), "hat": "", "talk": Dialog.blocking})
+				"tilt": lean - (vy / 3000.0 if air else 0.0), "hat": "", "talk": Dialog.blocking, "alpha": fade})
 		2:
-			_draw_horse(Vector2(x, y))
+			_draw_horse(Vector2(x, minf(y, GROUND + 10.0) if falling else y))
 			carl(Vector2(x - 2, y - 66), cs * 0.85, {"tilt": -0.1})
 		3:
 			var yb := y + sin(t * 20.0) * 0.8
@@ -408,43 +431,307 @@ func _draw_carl() -> void:
 			draw_set_transform_matrix(cam)
 
 
-func _hill_slope(x: float) -> float:
-	return (_hill(x + 2.0) - _hill(x - 2.0)) / 4.0
+const PATH_COL := [Color("c9a26b"), Color("a87b4a"), Color("d6b77c")]
+const PATH_H := [16.0, 22.0, 24.0]
+
+
+func _hh(i: int, k := 0) -> float:
+	## Stable pseudo-random 0..1 for scenery, so details never flicker as they scroll.
+	var v := sin(float(i) * 12.9898 + float(k) * 78.233) * 43758.5453
+	return v - floor(v)
+
+
+func _blade(b: Vector2, h: float, lean: float, col: Color, w := 1.4) -> void:
+	draw_colored_polygon(PackedVector2Array([b + Vector2(-w, 1), b + Vector2(lean * 0.35 - w * 0.55, -h * 0.5), b + Vector2(lean, -h),
+		b + Vector2(lean * 0.35 + w * 0.55, -h * 0.5), b + Vector2(w, 1)]), col)
+
+
+func _blades(y: float, sp: float, hmin: float, hmax: float, c1: Color, c2: Color, seed: int, xl: float) -> void:
+	## A row of single grass blades along y, scrolling with the road.
+	var i0 := int(floor((dist - 160.0) / sp))
+	var i1 := int(floor((dist + VW + 240.0) / sp)) + 1
+	for i in range(i0, i1):
+		var sx := i * sp + _hh(i, seed) * sp * 0.6 - dist
+		if sx < xl:
+			continue
+		var h := lerpf(hmin, hmax, _hh(i, seed + 1))
+		_blade(Vector2(sx, y), h, (_hh(i, seed + 2) - 0.5) * h * 0.7, c1.lerp(c2, _hh(i, seed + 3)))
+
+
+func _clumps(y: float, sp: float, hmin: float, hmax: float, c1: Color, c2: Color, seed: int, xl: float, keep := 0.55) -> void:
+	## Fanned tufts of grass, like little bunches.
+	var i0 := int(floor((dist - 160.0) / sp))
+	var i1 := int(floor((dist + VW + 240.0) / sp)) + 1
+	for i in range(i0, i1):
+		if _hh(i, seed) > keep:
+			continue
+		var sx := i * sp + _hh(i, seed + 1) * sp * 0.5 - dist
+		if sx < xl:
+			continue
+		var h := lerpf(hmin, hmax, _hh(i, seed + 2))
+		for b in 7:
+			var f := (b - 3.0) / 3.0
+			var bh := h * (1.0 - absf(f) * 0.45) * (0.8 + 0.4 * _hh(i * 7 + b, seed + 3))
+			_blade(Vector2(sx + f * 4.0, y), bh, f * h * 0.6, c1.lerp(c2, _hh(i * 7 + b, seed + 4)), 1.6)
+
+
+func _pebbles(y0: float, y1: float, sp: float, c1: Color, c2: Color, seed: int, xl: float) -> void:
+	var i0 := int(floor((dist - 160.0) / sp))
+	var i1 := int(floor((dist + VW + 240.0) / sp)) + 1
+	for i in range(i0, i1):
+		var sx := i * sp + _hh(i, seed) * sp - dist
+		if sx < xl:
+			continue
+		var r := 1.0 + _hh(i, seed + 1) * 1.8
+		Art.ellipse(self, Vector2(sx, lerpf(y0, y1, _hh(i, seed + 2))), r * 1.3, r * 0.8, c1.lerp(c2, _hh(i, seed + 3)))
+
+
+func _draw_backdrop() -> void:
+	## Far hills, mesas or the city skyline behind the road.
+	if st <= 2:
+		var far: Color = [Color("a9d3a0"), Color("9cc98e"), Color("e2c793")][st]
+		var near: Color = [Color("7fbf6a"), Color("70b05c"), Color("c7a86b")][st]
+		var fp := PackedVector2Array([Vector2(-400, GROUND + 20)])
+		for x in range(-400, int(VW) + 410, 10):
+			var u := x + dist * 0.1
+			var y := GROUND - 92 - sin(u / 140.0) * 30 - sin(u / 53.0) * 8
+			if st == 2:
+				y = GROUND - 66 - clampf(sin(u / 70.0) * 70, 0, 38) - clampf(sin(u / 31.0 + 1.0) * 30, 0, 10)
+			fp.append(Vector2(x, y))
+		fp.append(Vector2(VW + 400, GROUND + 20))
+		draw_colored_polygon(fp, far)
+		var hills := PackedVector2Array([Vector2(-400, GROUND + 20)])
+		for x in range(-400, int(VW) + 410, 10):
+			hills.append(Vector2(x, GROUND - 60 - sin((x + dist * 0.2) / 90.0) * 24))
+		hills.append(Vector2(VW + 400, GROUND + 20))
+		draw_colored_polygon(hills, near)
+		for i in 12:
+			var x := fmod(i * 113.0 - dist * 0.2 + 4000.0, 1356.0) - 200.0
+			var y := GROUND - 60 - sin((x + dist * 0.2) / 90.0) * 24 + 4
+			if st == 2:
+				if i % 3 != 0:
+					continue
+				# saguaro cactus on the ridge
+				var cc := Color("6a8f4a")
+				draw_line(Vector2(x, y), Vector2(x, y - 22), cc, 5.0)
+				draw_line(Vector2(x - 7, y - 8), Vector2(x - 7, y - 15), cc, 3.5)
+				draw_line(Vector2(x - 7, y - 8), Vector2(x, y - 8), cc, 3.5)
+				draw_line(Vector2(x + 7, y - 12), Vector2(x + 7, y - 19), cc, 3.5)
+				draw_line(Vector2(x + 7, y - 12), Vector2(x, y - 12), cc, 3.5)
+			elif i % 2 == 0:
+				draw_line(Vector2(x, y), Vector2(x, y - 12), Color("6a4a2a"), 3.0)
+				draw_circle(Vector2(x, y - 18), 9, Color("3f8a3a"))
+				draw_circle(Vector2(x - 4, y - 21), 5, Color("56a34a"))
+	elif st == 3:
+		for i in 18:
+			var x := fmod(i * 70 - dist * 0.25 + 4000.0, 1260.0) - 230.0
+			var h := 60 + (i * 37) % 90
+			draw_rect(Rect2(x, GROUND - 90 - h, 50, h + 40), Color("7c8aa6"))
+			for wy in range(0, h, 14):
+				draw_rect(Rect2(x + 8, GROUND - 84 - h + wy, 8, 6), Color(1, 0.95, 0.7, 0.35))
+				draw_rect(Rect2(x + 30, GROUND - 84 - h + wy, 8, 6), Color(1, 0.95, 0.7, 0.35))
+
+
+func _draw_ground() -> void:
+	var xl := -400.0
+	if st == 0 and dist < VW + 200:
+		xl = SHORE - dist
+	var big := VW + 800.0 - xl
+	match st:
+		0:
+			# meadow with a sandy footpath
+			Art.vgrad(self, Rect2(xl, GROUND, big, VH - GROUND + 40), Color("5aa34a"), Color("3f8a3a"))
+			draw_rect(Rect2(xl, VH + 40, big, 300), Color("3f8a3a"))
+			draw_rect(Rect2(xl, GROUND, big, 16), PATH_COL[0])
+			draw_rect(Rect2(xl, GROUND, big, 2), Color("a8834f"))
+			_pebbles(GROUND + 4, GROUND + 13, 21, Color("a08058"), Color("e6c995"), 3, xl)
+			_blades(GROUND + 1, 5, 5, 13, Color("4f9a3e"), Color("76c45a"), 1, xl)
+			for i in range(int(floor((dist - 160.0) / 70.0)), int(floor((dist + VW + 240.0) / 70.0)) + 1):
+				if _hh(i, 21) > 0.45:
+					continue
+				var fx := i * 70.0 + _hh(i, 22) * 40 - dist
+				if fx < xl:
+					continue
+				var fh := 8 + _hh(i, 23) * 8
+				draw_line(Vector2(fx, GROUND), Vector2(fx + 1, GROUND - fh), Color("3f7d33"), 1.2)
+				var fc: Color = [Color("ffd84a"), Color("ff8fb5"), Color("ffffff"), Color("b58aff")][int(_hh(i, 24) * 4) % 4]
+				for k in 5:
+					draw_circle(Vector2(fx + 1, GROUND - fh) + Vector2.from_angle(k * TAU / 5) * 2.2, 1.6, fc)
+				draw_circle(Vector2(fx + 1, GROUND - fh), 1.3, Color("e7a83a"))
+			_blades(GROUND + 18, 4, 4, 9, Color("5aa34a"), Color("82cf62"), 7, xl)
+			_clumps(GROUND + 46, 90, 10, 18, Color("4f9a3e"), Color("8bd36a"), 11, xl)
+			_clumps(GROUND + 66, 130, 12, 22, Color("3f8a3a"), Color("76c45a"), 13, xl)
+		1:
+			# packed dirt trail over a band of stony soil, tall grass behind
+			draw_rect(Rect2(xl, GROUND, big, VH - GROUND + 300), Color("4f9a3e"))
+			draw_rect(Rect2(xl, GROUND, big, 22), PATH_COL[1])
+			Art.vgrad(self, Rect2(xl, GROUND + 22, big, 34), Color("6e4a2c"), Color("5a3b22"))
+			_pebbles(GROUND + 26, GROUND + 52, 13, Color("8a6440"), Color("c2a27a"), 5, xl)
+			_pebbles(GROUND + 4, GROUND + 18, 37, Color("8f8a82"), Color("bdb7ad"), 6, xl)
+			for i in range(int(floor((dist - 160.0) / 40.0)), int(floor((dist + VW + 240.0) / 40.0)) + 1):
+				var rx := i * 40.0 - dist
+				if rx < xl:
+					continue
+				if _hh(i, 31) > 0.35:
+					draw_line(Vector2(rx, GROUND + 9), Vector2(rx + 22 + _hh(i, 32) * 10, GROUND + 9), Color("8e6538"), 1.5)
+				if _hh(i, 33) > 0.4:
+					draw_line(Vector2(rx + 8, GROUND + 16), Vector2(rx + 30, GROUND + 16), Color("8e6538"), 1.5)
+				if _hh(i, 34) > 0.93:
+					Art.ellipse(self, Vector2(rx + 20, GROUND + 12), 18, 3.5, Color(0.45, 0.6, 0.75, 0.75))
+					draw_line(Vector2(rx + 10, GROUND + 11), Vector2(rx + 20, GROUND + 11), Color(1, 1, 1, 0.5), 1.0)
+			_blades(GROUND + 57, 4, 5, 11, Color("4f9a3e"), Color("76c45a"), 17, xl)
+			_blades(GROUND + 1, 6, 4, 9, Color("4f9a3e"), Color("7cc45c"), 15, xl)
+			_clumps(GROUND + 1, 46, 14, 28, Color("3f8a3a"), Color("8bd36a"), 19, xl, 0.6)
+			_clumps(GROUND + 84, 110, 12, 20, Color("3a7d33"), Color("6fb35c"), 23, xl)
+		2:
+			# sandy prairie road with wagon ruts, dry grass and sagebrush
+			draw_rect(Rect2(xl, GROUND, big, VH - GROUND + 300), Color("a89a4c"))
+			draw_rect(Rect2(xl, GROUND, big, 24), PATH_COL[2])
+			Art.vgrad(self, Rect2(xl, GROUND + 24, big, 40), Color("b7834e"), Color("9a6a3c"))
+			for k in 3:
+				draw_line(Vector2(xl, GROUND + 32 + k * 10), Vector2(xl + big, GROUND + 32 + k * 10), Color(0, 0, 0, 0.07), 2.0)
+			_pebbles(GROUND + 28, GROUND + 60, 17, Color("8a5a32"), Color("d8a878"), 8, xl)
+			for ry in [GROUND + 7.0, GROUND + 17.0]:
+				draw_line(Vector2(xl, ry), Vector2(xl + big, ry), Color("b8955a"), 2.5)
+				draw_line(Vector2(xl, ry + 2), Vector2(xl + big, ry + 2), Color(1, 1, 1, 0.15), 1.0)
+			for i in range(int(floor((dist - 160.0) / 26.0)), int(floor((dist + VW + 240.0) / 26.0)) + 1):
+				var hx := i * 26.0 - dist
+				Art.ellipse(self, Vector2(hx, GROUND + 12 + (i % 2) * 2), 2.2, 1.3, Color("b8955a"))
+			for i in range(int(floor((dist - 160.0) / 150.0)), int(floor((dist + VW + 240.0) / 150.0)) + 1):
+				if _hh(i, 41) > 0.6:
+					continue
+				var bx := i * 150.0 + _hh(i, 42) * 80 - dist
+				for k in 4:
+					draw_circle(Vector2(bx + (k - 1.5) * 6, GROUND - 4 - (k % 2) * 4), 6 + _hh(i * 4 + k, 43) * 2, Color("8a9a6a").lerp(Color("a9b88a"), _hh(i * 4 + k, 44)))
+			_blades(GROUND + 1, 9, 4, 11, Color("b3a64e"), Color("dccb72"), 25, xl)
+			_clumps(GROUND + 66, 70, 10, 18, Color("9a8a3e"), Color("d4c26a"), 27, xl)
+		3:
+			# city street: sidewalk with lamps, two lanes, curb and verge
+			draw_rect(Rect2(xl, GROUND - 98, big, 18), Color("b9b4aa"))
+			for i in range(int(floor((dist - 160.0) / 40.0)), int(floor((dist + VW + 240.0) / 40.0)) + 1):
+				var jx := i * 40.0 - dist
+				draw_line(Vector2(jx, GROUND - 98), Vector2(jx - 6, GROUND - 80), Color(0, 0, 0, 0.12), 1.0)
+			for i in range(int(floor((dist - 160.0) / 240.0)), int(floor((dist + VW + 240.0) / 240.0)) + 1):
+				var lx := i * 240.0 - dist + 60
+				draw_line(Vector2(lx, GROUND - 90), Vector2(lx, GROUND - 168), Color("3d4250"), 3.0)
+				draw_line(Vector2(lx, GROUND - 168), Vector2(lx + 16, GROUND - 168), Color("3d4250"), 3.0)
+				Art.round_rect(self, Rect2(lx + 10, GROUND - 168, 14, 6), 3, Color("ffe9a8"))
+				if i % 2 == 0:
+					draw_rect(Rect2(lx + 90, GROUND - 118, 4, 28), Color("6b5a3a"))
+					draw_circle(Vector2(lx + 92, GROUND - 126), 12, Color("3f8a3a"))
+			draw_rect(Rect2(xl, GROUND - 80, big, 94), Color("4a4d55"))
+			draw_rect(Rect2(xl, GROUND - 80, big, 3), Color("9a9da6"))
+			draw_rect(Rect2(xl, GROUND + 9, big, 2), Color("e8e8e8"))
+			for i in 14:
+				var x := fmod(i * 90 - dist + 9000.0, 1260.0) - 200.0
+				draw_rect(Rect2(x, (LANES[0] + LANES[1]) / 2 - 12, 40, 4), Color("f2e6a0"))
+			draw_rect(Rect2(xl, GROUND + 14, big, VH - GROUND + 300), Color("5aa34a"))
+			draw_rect(Rect2(xl, GROUND + 14, big, 5), Color("c8c3b8"))
+			_blades(GROUND + 24, 5, 4, 9, Color("4f9a3e"), Color("7cc45c"), 29, xl)
+		_:
+			# farmland seen from the air
+			draw_rect(Rect2(xl, GROUND, big, VH - GROUND + 300), Color("5aa34a"))
+			for i in range(int(floor((dist - 160.0) / 150.0)), int(floor((dist + VW + 240.0) / 150.0)) + 1):
+				var fx := i * 150.0 - dist
+				var fc: Color = [Color("6fb35c"), Color("c9b25a"), Color("8fbf5a"), Color("a0c86a")][int(_hh(i, 51) * 4) % 4]
+				draw_rect(Rect2(fx + 2, GROUND + 4, 146, 60), fc)
+				for k in 5:
+					draw_line(Vector2(fx + 4, GROUND + 10 + k * 11), Vector2(fx + 146, GROUND + 10 + k * 11), Color(0, 0, 0, 0.07), 2.0)
+			_blades(GROUND + 1, 7, 3, 7, Color("4f9a3e"), Color("7cc45c"), 31, xl)
+	if st == 0 and dist < VW + 200:
+		_draw_shore()
+
+
+func _draw_hole(sx: float, w: float) -> void:
+	## A flat ellipse in the path: the far inner wall shows on top, darkness below.
+	var c := Vector2(sx + w / 2, GROUND + 7)
+	var rx := w / 2 + 2
+	var ry := 7.0
+	Art.ellipse(self, c, rx, ry, Color("6b4a2c"))
+	Art.ellipse(self, c + Vector2(rx * 0.62, -0.5), rx * 0.3, ry * 0.75, Color("7f5c3a"))
+	Art.ellipse(self, c + Vector2(-rx * 0.06, ry * 0.32), rx * 0.9, ry * 0.66, Color("140d07"))
+
+
+func _hole_lip(sx: float, w: float) -> void:
+	## The near edge of the hole, redrawn over Carl so he drops in behind it.
+	if st > 2:
+		return
+	var c := Vector2(sx + w / 2, GROUND + 7)
+	var rx := w / 2 + 2
+	var ry := 7.0
+	var ph: float = PATH_H[st]
+	var pts := PackedVector2Array()
+	for k in 17:
+		var a := PI * k / 16.0
+		pts.append(c + Vector2(cos(a) * rx, sin(a) * ry))
+	pts.append(Vector2(c.x - rx, GROUND + ph))
+	pts.append(Vector2(c.x + rx, GROUND + ph))
+	draw_colored_polygon(pts, PATH_COL[st])
 
 
 func _draw_shore() -> void:
-	## The sea Carl walks out of, and the little hill beside it. Scrolls away with the road.
+	## The sloping beach Carl walks up out of the sea. Scrolls away with the road.
 	var ox := -dist
-	var hill := PackedVector2Array([Vector2(ox + 15, GROUND + 2)])
-	for i in 31:
-		var x := 20.0 + i * 4.8
-		hill.append(Vector2(ox + x, GROUND - _hill(x)))
-	hill.append(Vector2(ox + 170, GROUND + 2))
-	draw_colored_polygon(hill, Color("6fb35c"))
-	for i in 9:
-		var x := 36.0 + i * 13.0
-		var y := GROUND - _hill(x)
-		draw_line(Vector2(ox + x, y), Vector2(ox + x + 3, y - 6), Color("3f7d33"), 2.0)
-	# sand under the waterline
-	draw_colored_polygon(PackedVector2Array([Vector2(ox - 500, VH + 300), Vector2(ox - 500, GROUND), Vector2(ox + 34, GROUND), Vector2(ox + 130, VH + 300)]), Color("e3cf98"))
-	for i in 6:
-		draw_circle(Vector2(ox + 40 + i * 9, GROUND + 14 + i * 11), 1.5, Color("c9b27a"))
+	var sand := PackedVector2Array([Vector2(ox + SHORE + 6, GROUND)])
+	for i in 33:
+		var x := SHORE - i * 20.0
+		sand.append(Vector2(ox + x, _coast(x)))
+	sand.append(Vector2(ox + SHORE - 640, VH + 400))
+	sand.append(Vector2(ox + SHORE + 6 + (VH + 400 - GROUND) * 0.4, VH + 400))
+	draw_colored_polygon(sand, Color("e3cf98"))
+	# darker wet sand below the waterline
+	var xm := SHORE - (SEA_Y - GROUND) / 0.32
+	var wet := PackedVector2Array()
+	for i in 30:
+		var x := xm + 4 - i * 20.0
+		wet.append(Vector2(ox + x, _coast(x) + 0.5))
+	for i in 30:
+		var x := xm + 4 - (29 - i) * 20.0
+		wet.append(Vector2(ox + x, _coast(x) + 16))
+	draw_colored_polygon(wet, Color("c9b07a"))
+	for i in 7:
+		var x := xm + 2 + i * 3.0
+		draw_circle(Vector2(ox + x, _coast(x) + 4 + (i % 3) * 3), 1.4, Color("f4e6c0") if i % 2 else Color("b89e6a"))
+	# beach rocks and a shell
+	Art.ellipse(self, Vector2(ox + xm + 10, _coast(xm + 10) - 1), 6, 3.5, Color("8a857c"))
+	Art.ellipse(self, Vector2(ox + xm + 9, _coast(xm + 10) - 2.5), 3, 1.4, Color(1, 1, 1, 0.25))
+	draw_colored_polygon(PackedVector2Array([Vector2(ox + SHORE - 4, GROUND + 1), Vector2(ox + SHORE - 1, GROUND - 4), Vector2(ox + SHORE + 2, GROUND + 1)]), Color("f0c9b0"))
+	# beach grass along the edge of the dunes
+	for k in 4:
+		var yy := GROUND + 20.0 + k * 16.0
+		var ex := ox + SHORE + 6 + (yy - GROUND) * 0.4
+		for b in 5:
+			var f := (b - 2.0) / 2.0
+			_blade(Vector2(ex - 2 + f * 3, yy), 9 + (b % 2) * 4, f * 6.0, Color("8fae5a").lerp(Color("c9c27a"), (k + b) % 3 / 3.0), 1.3)
+	# the grass lip where the meadow ends
+	draw_colored_polygon(PackedVector2Array([Vector2(ox + SHORE - 8, GROUND + 2), Vector2(ox + SHORE + 6, GROUND - 2), Vector2(ox + SHORE + 10, GROUND + 6)]), Color("5aa34a"))
+	for k in 5:
+		_blade(Vector2(ox + SHORE - 6 + k * 3.5, GROUND + 1), 8 + (k % 2) * 5, (k - 2) * 2.0, Color("4f9a3e").lerp(Color("a8b860"), 0.4))
 
 
 func _draw_sea_front() -> void:
 	## Drawn after Carl so he looks like he is wading out of it.
 	var ox := -dist
-	var sea := PackedVector2Array([Vector2(ox - 500, VH + 300)])
+	var xm := SHORE - (SEA_Y - GROUND) / 0.32
+	var sea := PackedVector2Array()
 	for i in 41:
-		var x := -390.0 + i * 10.0
-		sea.append(Vector2(ox + x, GROUND - 4 + sin(x / 18.0 + t * 2.4) * 2.5))
-	sea.append(Vector2(ox + 18, GROUND + 14))
-	sea.append(Vector2(ox + 96, VH + 300))
-	draw_colored_polygon(sea, Color(0.2, 0.52, 0.82, 0.88))
+		var x := -500.0 + i * (xm + 500.0) / 40.0
+		var calm := clampf((xm - x) / 40.0, 0.0, 1.0)
+		sea.append(Vector2(ox + x, SEA_Y + sin(x / 18.0 + t * 2.4) * 2.5 * calm))
+	for i in 31:
+		var x := xm - i * 21.0
+		sea.append(Vector2(ox + x, _coast(x)))
+	draw_colored_polygon(sea, Color(0.2, 0.52, 0.82, 0.86))
+	var surf := PackedVector2Array()
+	for i in 41:
+		surf.append(sea[i])
+	draw_polyline(surf, Color(1, 1, 1, 0.45), 2.0)
 	for i in 6:
 		var x := -330.0 + i * 60.0 + fmod(t * 14.0, 60.0)
-		draw_line(Vector2(ox + x, GROUND + 4 + (i % 2) * 6), Vector2(ox + x + 18, GROUND + 4 + (i % 2) * 6), Color(1, 1, 1, 0.35), 2.0)
-	draw_line(Vector2(ox + 6, GROUND - 3), Vector2(ox + 20, GROUND - 2), Color(1, 1, 1, 0.6), 2.5)
+		if x < xm - 30:
+			draw_line(Vector2(ox + x, SEA_Y + 10 + (i % 2) * 8), Vector2(ox + x + 18, SEA_Y + 10 + (i % 2) * 8), Color(1, 1, 1, 0.3), 2.0)
+	var fx := xm - 6 + sin(t * 1.6) * 5
+	draw_line(Vector2(ox + fx - 14, SEA_Y + 1), Vector2(ox + fx + 4, _coast(fx + 4) - 0.5), Color(1, 1, 1, 0.7), 2.5)
 
 
 func _draw_horse(f: Vector2) -> void:
@@ -576,14 +863,7 @@ func _draw_obs() -> void:
 				draw_line(Vector2(sx + w * 0.4, GROUND - hh), Vector2(sx + w * 0.35, GROUND - hh - 8), Color("5a361c"), 2.0)
 				Art.ellipse(self, Vector2(sx + w * 0.33, GROUND - hh - 9), 4, 2.5, Color("5aa34a"))
 			"hole":
-				var w: float = o.w
-				draw_rect(Rect2(sx, GROUND, w, VH - GROUND + 200), Color("1d140c"))
-				Art.vgrad(self, Rect2(sx, GROUND, w, 40), Color("4a3420"), Color("1d140c"))
-				draw_rect(Rect2(sx, GROUND, 5, VH - GROUND + 200), Color("3a2818"))
-				draw_rect(Rect2(sx + w - 5, GROUND, 5, VH - GROUND + 200), Color("2a1c10"))
-				for i in 3:
-					draw_rect(Rect2(sx - 4 + i * 3, GROUND - 2, 4, 3), Color("6b4a2a"))
-					draw_rect(Rect2(sx + w - 6 - i * 3, GROUND - 2, 4, 3), Color("6b4a2a"))
+				_draw_hole(sx, o.w)
 			"fence":
 				var w: float = o.w
 				var hh: float = o.h
@@ -658,44 +938,8 @@ func _draw_world() -> void:
 		var x := fmod(c.x - dist * 0.08 + 2000.0, 1200.0) - 200.0
 		for j in 3:
 			Art.ellipse(self, Vector2(x + j * 26 * c.s, c.y - (j % 2) * 10 * c.s), 34 * c.s, 14 * c.s, Color(1, 1, 1, 0.75))
-	if st <= 2:
-		var hills := PackedVector2Array([Vector2(-400, GROUND)])
-		for x in range(-400, int(VW) + 410, 10):
-			hills.append(Vector2(x, GROUND - 60 - sin((x + dist * 0.2) / 90.0) * 24))
-		hills.append(Vector2(VW + 400, GROUND))
-		draw_colored_polygon(hills, Color("c7a86b") if st == 2 else Color("7fbf6a"))
-	elif st == 3:
-		for i in 18:
-			var x := fmod(i * 70 - dist * 0.25 + 4000.0, 1260.0) - 230.0
-			var h := 60 + (i * 37) % 90
-			draw_rect(Rect2(x, GROUND - 90 - h, 50, h + 40), Color("7c8aa6"))
-			for wy in range(0, h, 14):
-				draw_rect(Rect2(x + 8, GROUND - 84 - h + wy, 8, 6), Color(1, 0.95, 0.7, 0.35))
-				draw_rect(Rect2(x + 30, GROUND - 84 - h + wy, 8, 6), Color(1, 0.95, 0.7, 0.35))
-	if st <= 2:
-		draw_rect(Rect2(-400, GROUND, VW + 800, VH - GROUND + 300), Color("5aa34a"))
-		if st == 1:
-			for i in 10:
-				var x := fmod(i * 130 - dist + 5200.0, 1300.0) - 200.0
-				Art.ellipse(self, Vector2(x, GROUND + 20), 26, 6, Color("8b6b3e"))
-		if st == 2:
-			draw_rect(Rect2(-400, GROUND, VW + 800, 24), Color("b08850"))
-			for i in 26:
-				var x := fmod(i * 53 - dist + 5300.0, 1378.0) - 200.0
-				draw_rect(Rect2(x, GROUND + 8 + (i % 3) * 5, 8, 3), Color("977042"))
-		for i in 50:
-			var x := fmod(i * 29 - dist + 5800.0, 1450.0) - 200.0
-			draw_line(Vector2(x, GROUND), Vector2(x + 3, GROUND - 7), Color("3f7d33"), 2.0)
-	elif st == 3:
-		draw_rect(Rect2(-400, GROUND - 80, VW + 800, VH - GROUND + 380), Color("4a4d55"))
-		draw_rect(Rect2(-400, GROUND + 14, VW + 800, VH), Color("5aa34a"))
-		for i in 14:
-			var x := fmod(i * 90 - dist + 9000.0, 1260.0) - 200.0
-			draw_rect(Rect2(x, (LANES[0] + LANES[1]) / 2 - 12, 40, 4), Color("f2e6a0"))
-	else:
-		draw_rect(Rect2(-400, GROUND, VW + 800, VH - GROUND + 300), Color("5aa34a"))
-	if st == 0 and dist < VW + 200:
-		_draw_shore()
+	_draw_backdrop()
+	_draw_ground()
 	_draw_obs()
 	if lib_x > 0:
 		_draw_library(lib_x - dist + CX0)
@@ -758,6 +1002,10 @@ func paint() -> void:
 	_draw_world()
 	if phase != "crash" or int(t * 12) % 2 == 1:
 		_draw_carl()
+	if falling:
+		for o in obs:
+			if o.k == "hole":
+				_hole_lip(o.x - dist + CX0, o.w)
 	if st == 0 and dist < VW + 200:
 		_draw_sea_front()
 	for p in particles:

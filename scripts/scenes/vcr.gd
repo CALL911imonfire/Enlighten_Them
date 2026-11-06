@@ -234,10 +234,10 @@ func click(p: Vector2) -> void:
 				phase = "loading"
 				Sfx.noise(0.3, 600, 0.4)
 		"play":
-			if Rect2(236, 332, 48, 26).has_point(p):
+			if Rect2(242, 341, 44, 24).has_point(p):
 				_start_track()
 		"track":
-			if p.distance_to(Vector2(395, 346)) < 26:
+			if p.distance_to(Vector2(395, 342)) < 26:
 				knob_drag = true
 				knob_x = p.x
 				knob_v = track
@@ -543,35 +543,36 @@ func _draw_vcr() -> void:
 	draw_rect(Rect2(204, 324, 214, 3), Color(1, 1, 1, 0.08))
 	draw_rect(Rect2(204, 366, 214, 4), Color("141418"))
 	# tape slot with a flap
-	draw_rect(Rect2(268, 328, 70, 12), Color("0c0c10"))
-	draw_rect(Rect2(270, 329, 66, 3), Color("2a2a30"))
-	txt(Vector2(303, 349), "VHS", 7, Color("6a6a74"))
+	draw_rect(Rect2(262, 327, 82, 12), Color("0c0c10"))
+	draw_rect(Rect2(264, 328, 78, 3), Color("2a2a30"))
+	txt(Vector2(222, 336), "VHS", 7, Color("6a6a74"))
 	# clock display
-	Art.round_rect(self, Rect2(206, 340, 32, 16), 2, Color("0a0a0c"))
+	Art.round_rect(self, Rect2(206, 343, 32, 16), 2, Color("0a0a0c"))
 	var blink := int(t * 2) % 2 == 0
 	if blink and dead_t == 0 and phase != "dead":
-		Art.text(self, Vector2(209, 353), "12:00", 10, Color("ff4d3a"), -1)
+		Art.text(self, Vector2(209, 356), "12:00", 10, Color("ff4d3a"), -1)
 	# play button
 	var play_col := Color("3a3a40")
 	if phase == "play":
 		play_col = Color("7fe08a") if blink else Color("3a6a40")
-	Art.round_rect(self, Rect2(240, 336, 40, 18), 3, play_col)
-	draw_colored_polygon(PackedVector2Array([Vector2(254, 340), Vector2(254, 350), Vector2(262, 345)]), Color.WHITE)
+	Art.round_rect(self, Rect2(246, 345, 36, 16), 3, play_col)
+	draw_colored_polygon(PackedVector2Array([Vector2(260, 349), Vector2(260, 357), Vector2(267, 353)]), Color.WHITE)
 	# little transport buttons
 	for k in 4:
-		Art.round_rect(self, Rect2(342 + k * 9, 352, 7, 6), 1, Color("3a3a40"))
+		Art.round_rect(self, Rect2(292 + k * 11, 349, 9, 8), 1, Color("3a3a40"))
+		draw_rect(Rect2(295 + k * 11, 352, 3, 2), Color("8a8a94"))
 	# tracking knob
-	draw_circle(Vector2(395, 346), 14, Color("2a2a30"))
-	draw_set_transform_matrix(cam * Transform2D((track - 0.5) * 4, Vector2(395, 346)))
-	draw_circle(Vector2.ZERO, 12, Color("55555c"))
+	draw_circle(Vector2(395, 342), 13, Color("2a2a30"))
+	draw_set_transform_matrix(cam * Transform2D((track - 0.5) * 4, Vector2(395, 342)))
+	draw_circle(Vector2.ZERO, 11, Color("55555c"))
 	for k in 12:
 		var a := k * TAU / 12
-		draw_line(Vector2(cos(a), sin(a)) * 9, Vector2(cos(a), sin(a)) * 12, Color("44444a"), 1.5)
-	draw_rect(Rect2(-1.5, -11, 3, 7), Color("dddddd"))
+		draw_line(Vector2(cos(a), sin(a)) * 8, Vector2(cos(a), sin(a)) * 11, Color("44444a"), 1.5)
+	draw_rect(Rect2(-1.5, -10, 3, 6), Color("dddddd"))
 	draw_set_transform_matrix(cam)
 	if phase == "track":
-		draw_arc(Vector2(395, 346), 17, 0, TAU, 20, Color(1, 0.81, 0.35, 0.5 + 0.4 * sin(t * 5)), 2.0, true)
-	txt(Vector2(330, 362), "TRACKING", 7, Color("8a8a94"))
+		draw_arc(Vector2(395, 342), 16, 0, TAU, 20, Color(1, 0.81, 0.35, 0.5 + 0.4 * sin(t * 5)), 2.0, true)
+	txt(Vector2(395, 363), "TRACKING", 5, Color("8a8a94"))
 
 
 func _draw_modem(a: float) -> void:

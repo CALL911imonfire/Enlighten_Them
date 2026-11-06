@@ -23,6 +23,8 @@ var spawn_t := 0.0
 var caught := 0
 var lost := 0
 var light_dim := 0.0
+var dim_to := 0.0       # light_dim eases toward this so the light never pops
+var glow_shown := 0.7   # Carl's drawn glow eases toward energy
 var recline := 0.0
 var low_n := 0
 var morph := 0.0
@@ -64,6 +66,8 @@ func _set_stage(i: int) -> void:
 			dying = 0
 			spawn_t = 0
 			light_dim = 0
+			dim_to = 0
+			glow_shown = energy
 			recline = 0
 			await Dialog.say(WAVE_TALK[0])
 			phase = "play"
@@ -71,7 +75,7 @@ func _set_stage(i: int) -> void:
 			for s in stars:
 				s.state = "dead"
 			energy = 1.0
-			light_dim = 0.6
+			dim_to = 0.6
 			await Dialog.say(["...", "That was the last one. Every star in the universe. Gone.",
 				"CARL:And yet I am still glowing. I carry all of it now. Every photon we caught.",
 				"And I'm... fading. Funny thing about being a light. When the stars go, so do I.", "!recline", "Ahh. Finally. My ethereal recliner.",
@@ -85,6 +89,7 @@ func _set_stage(i: int) -> void:
 			parts.clear()
 			end_t = 0
 			light_dim = 1.0
+			dim_to = 1.0
 			recline = 1.0
 			await Dialog.say(["CARL:...", "CARL:Alone. In the dark. With every answer except one.", "CARL:How can entropy be reversed?"])
 			phase = "morph"
@@ -100,7 +105,7 @@ func _cue(c: String) -> void:
 			recline = 0.01
 			Sfx.tone(200, 0.4, 0.04, "sine")
 		"fade":
-			light_dim = 0.999
+			dim_to = 1.0
 			Sfx.tone(330, 1.2, 0.04, "sine")
 			Sfx.tone(220, 1.6, 0.04, "sine", 0.4)
 
@@ -149,7 +154,7 @@ func _wave_done() -> void:
 		_set_stage(1)
 		return
 	dying = 0
-	light_dim = wave * 0.2
+	dim_to = wave * 0.2
 	await Dialog.say(WAVE_TALK[wave])
 	phase = "play"
 
@@ -162,7 +167,7 @@ func _low_power() -> void:
 	Sfx.tone(150, 0.5, 0.05, "sawtooth")
 	var L := [["Carl! Hey! Stay with me!", "CARL:I am... fine. Merely... conserving... brilliance.", "Here, have some of mine."],
 		["Carl, you're flickering!", "CARL:Lights flicker. It is... very on brand.", "Take a little more of my glow. I've got plenty. Probably."]]
-	light_dim = minf(0.7, light_dim + 0.08)
+	dim_to = minf(0.7, dim_to + 0.08)
 	await Dialog.say(L[mini(low_n - 1, 1)])
 	phase = "play"
 
@@ -234,10 +239,12 @@ func tick(dt: float) -> void:
 			m.done = true
 			energy = minf(1, energy + 0.01)
 	motes = motes.filter(func(m): return m.f < 1.2)
+	light_dim += (dim_to - light_dim) * minf(1.0, dt * 1.2)
+	glow_shown += (energy - glow_shown) * minf(1.0, dt * 2.5)
 	if recline > 0 and recline < 1:
 		recline = minf(1, recline + dt * 0.8)
 	if phase == "morph":
-		morph = minf(1, morph + dt / 7.0)
+		morph = minf(1, morph + dt / 8.0)
 		if morph >= 1:
 			phase = "talk"
 			_carl_speaks()
@@ -271,6 +278,7 @@ func _first_screen() -> void:
 	var a2 := _smooth(clampf((m - 0.25) / 0.45, 0, 1))
 	var e := _smooth(clampf((m - 0.5) / 0.5, 0, 1))
 	draw_rect(big_rect(), Color("03030a"))
+	Art.draw_recliner(self, Vector2(70, 95), 1.0 - a1, t)
 	var bg := Color("efe6cf")
 	bg.a = e
 	draw_rect(big_rect(), bg)
@@ -286,7 +294,7 @@ func _first_screen() -> void:
 			Art.glow(self, Vector2(300, cy) + Vector2(cos(ang), sin(ang)) * rad, 8, Color(1, 0.93, 0.7, a1 * (1 - e) * k))
 	if a2 < 1:
 		var cs := 0.3 * (1.0 - 0.6 * a2)
-		carl(Vector2(300, cy), cs, {"flip": true, "glow": 1.0 + a1, "alpha": 1 - a2})
+		carl(Vector2(300, cy), cs, {"flip": true, "glow": glow_shown + a1 * (1.6 - glow_shown), "alpha": 1 - a2})
 	var pulse := 1.0 + sin(t * 2.2) * 0.06 + (sin(t * 6) * 0.03 if phase == "click" else 0.0)
 	var r := (10 + 28 * a2 + 32 * e) * pulse
 	if a2 <= 0:
@@ -301,7 +309,7 @@ func _first_screen() -> void:
 	Art.glow(self, Vector2(300 + r * 1.4, cy), r * 0.9, Color(1, 0.85, 0.55, 0.4 * e))
 	draw_colored_polygon(moved, tc)
 	Art.glow(self, Vector2(300, cy), r * 3.2, Color(1, 0.88, 0.55, 0.7 * a2))
-	light(Vector2(300, cy), r, {"look": (mouse() - Vector2(300, cy)) / 300.0, "dim": 1.0 - a2, "squint": a2 < 0.9})
+	light(Vector2(300, cy), r, {"look": (mouse() - Vector2(300, cy)) / 300.0, "dim": 1.0 - a2, "squint": m < 0.97})
 	if phase == "click":
 		for i in 24:
 			var a := t * 0.5 + i * TAU / 24
@@ -343,9 +351,10 @@ func paint() -> void:
 				draw_arc(s.p, R + 6, 0, TAU, 24, Color(1, 0.81, 0.35, 0.8 - s.k * 0.5), 2.0, true)
 	for m in motes:
 		Art.glow(self, m.p, 12, Color(1, 0.94, 0.7, 0.9))
-	Art.draw_recliner(self, Vector2(70, 95), recline)
-	light(Vector2(66 if recline > 0 else 60, 68 if recline > 0 else 60), 16, {"dim": light_dim, "squint": recline > 0.5})
-	carl(CARL_P, 0.3, {"flip": true, "glow": energy, "talk": Dialog.blocking and Dialog._speaker == "carl"})
+	Art.draw_recliner(self, Vector2(70, 95), recline, t)
+	var rk := _smooth(clampf(recline, 0, 1))
+	light(Vector2(60, 60).lerp(Vector2(66, 66), rk), 16, {"dim": light_dim, "squint": recline > 0.5})
+	carl(CARL_P, 0.3, {"flip": true, "glow": glow_shown, "talk": Dialog.blocking and Dialog._speaker == "carl"})
 	if st == 0:
 		Art.round_rect(self, Rect2(150, 560, 300, 14), 7, Color(0, 0, 0, 0.5))
 		Art.round_rect(self, Rect2(152, 562, maxf(6, 296 * maxf(0, energy)), 10), 5, Color("ff7a5a") if energy < 0.25 else Color("ffcf5a"))

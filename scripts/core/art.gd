@@ -296,20 +296,59 @@ static func draw_light(ci: CanvasItem, pos: Vector2, r: float, t: float, props :
 	ci.draw_set_transform_matrix(cam)
 
 
-static func draw_recliner(ci: CanvasItem, pos: Vector2, k: float) -> void:
+static func draw_recliner(ci: CanvasItem, pos: Vector2, k: float, t := 0.0) -> void:
+	## The light's plush recliner. k fades it in (0..1) and kicks out the footrest.
 	if k <= 0.0:
 		return
-	var c := Color("6b4a8a")
-	c.a = k * 0.9
-	round_rect(ci, Rect2(pos + Vector2(-34, -10), Vector2(68, 26)), 8, c)
-	round_rect(ci, Rect2(pos + Vector2(-34, -46), Vector2(20, 44)), 8, c)
-	var c2 := Color("8a6ab0")
-	c2.a = k * 0.9
-	ci.draw_rect(Rect2(pos + Vector2(20, 6), Vector2(24, 8)), c2)
-	var c3 := Color("3a2a4a")
-	c3.a = k * 0.9
-	ci.draw_rect(Rect2(pos + Vector2(-28, 16), Vector2(6, 10)), c3)
-	ci.draw_rect(Rect2(pos + Vector2(22, 16), Vector2(6, 10)), c3)
+	var a := minf(1.0, k * 1.6) * 0.96
+	var e := k * k * (3.0 - 2.0 * k)
+	var main := Color("6b4a8a", a)
+	var lite := Color("8a6ab0", a)
+	var deep := Color("4a3266", a)
+	var wood := Color("3a2a4a", a)
+	ellipse(ci, pos + Vector2(4, 27), 54, 5, Color(0, 0, 0, 0.3 * a))
+	# legs and base
+	for lx in [-28.0, 22.0]:
+		ci.draw_rect(Rect2(pos + Vector2(lx, 14), Vector2(6, 12)), wood)
+		ci.draw_rect(Rect2(pos + Vector2(lx - 1, 24), Vector2(8, 3)), Color("b8913a", a))
+	# footrest on its scissor arms
+	var fx := 18.0 + 18.0 * e
+	ci.draw_line(pos + Vector2(26, 10), pos + Vector2(fx + 6, 6), Color("2a2a30", a), 2.0)
+	ci.draw_line(pos + Vector2(26, 4), pos + Vector2(fx + 6, 12), Color("2a2a30", a), 2.0)
+	round_rect(ci, Rect2(pos + Vector2(fx, 1), Vector2(28, 12)), 6, main)
+	round_rect(ci, Rect2(pos + Vector2(fx + 3, 2), Vector2(22, 4)), 2, lite)
+	# backrest, tipping back as it reclines, with tufted buttons and a pillow
+	var piv := pos + Vector2(-26, 8)
+	ci.draw_set_transform_matrix(cam * Transform2D(-0.28 * e, piv))
+	round_rect(ci, Rect2(-12, -60, 26, 64), 11, main)
+	round_rect(ci, Rect2(-7, -53, 16, 50), 8, lite)
+	for by in [-42.0, -28.0, -14.0]:
+		ci.draw_circle(Vector2(1, by), 1.8, deep)
+	round_rect(ci, Rect2(-10, -70, 26, 14), 7, Color("e8d8f0", a))
+	ci.draw_line(Vector2(-6, -63), Vector2(12, -63), Color(0.6, 0.5, 0.7, 0.5 * a), 1.0)
+	# a blanket draped over the back
+	ci.draw_colored_polygon(PackedVector2Array([Vector2(-14, -40), Vector2(14, -46), Vector2(16, -20), Vector2(4, -14), Vector2(-14, -10)]), Color("2f8a7a", a))
+	for k2 in 3:
+		ci.draw_line(Vector2(-14, -34 + k2 * 9), Vector2(15, -40 + k2 * 9), Color(1, 1, 1, 0.25 * a), 1.5)
+	ci.draw_set_transform_matrix(cam)
+	# seat cushion and the piping along its edge
+	round_rect(ci, Rect2(pos + Vector2(-34, -10), Vector2(64, 26)), 9, main)
+	round_rect(ci, Rect2(pos + Vector2(-30, -10), Vector2(56, 9)), 5, lite)
+	ci.draw_line(pos + Vector2(-30, 14), pos + Vector2(26, 14), deep, 2.0)
+	# rolled armrest at the front with a cup holder and a steaming mug
+	round_rect(ci, Rect2(pos + Vector2(-30, -22), Vector2(48, 12)), 6, deep)
+	ci.draw_circle(pos + Vector2(18, -16), 7, main)
+	ci.draw_circle(pos + Vector2(18, -16), 3, lite)
+	ci.draw_rect(Rect2(pos + Vector2(13, -28), Vector2(10, 11)), Color("f2eee2", a))
+	ci.draw_rect(Rect2(pos + Vector2(14, -27), Vector2(8, 2)), Color("6a3a20", a))
+	ci.draw_arc(pos + Vector2(24, -23), 3, -PI / 2, PI / 2, 8, Color("f2eee2", a), 1.5)
+	for s2 in 2:
+		var f := fmod(t * 0.5 + s2 * 0.5, 1.0)
+		var sp := pos + Vector2(18 + sin(f * 6.0 + s2) * 2, -31 - f * 14)
+		ci.draw_circle(sp, 1.5 + f * 2, Color(0.95, 0.92, 0.85, 0.5 * (1 - f) * a))
+	# side lever
+	ci.draw_line(pos + Vector2(10, 8), pos + Vector2(4 + 8 * e, -2), Color("b8913a", a), 2.0)
+	ci.draw_circle(pos + Vector2(4 + 8 * e, -2), 2.5, Color("d8b04a", a))
 
 
 # ---------------------------------------------------------------- Carl

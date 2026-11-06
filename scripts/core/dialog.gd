@@ -18,6 +18,9 @@ const STYLES := {
 }
 
 var blocking := false
+## When true, clicks on a quip go to the game instead of dismissing it
+## (used while Carl is running, so a click is always a jump).
+var quip_passthrough := false
 var _queue: Array = []
 var _batch := 0
 var _seq := 0
@@ -180,6 +183,7 @@ func clear() -> void:
 	_queue.clear()
 	_quips.clear()
 	blocking = false
+	quip_passthrough = false
 	_hide()
 
 
@@ -247,7 +251,7 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if blocking and not _is_quip:
 			press = true
-		elif _is_quip and _panel.get_global_rect().has_point(event.position):
+		elif _is_quip and not quip_passthrough and _panel.get_global_rect().has_point(event.position):
 			press = true
 	elif event is InputEventKey and event.pressed and not event.echo:
 		if blocking and event.keycode in [KEY_SPACE, KEY_ENTER, KEY_KP_ENTER]:

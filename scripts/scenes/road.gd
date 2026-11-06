@@ -271,6 +271,7 @@ func _carl_y() -> float:
 
 # ---------------------------------------------------------------- update
 func tick(dt: float) -> void:
+	Dialog.quip_passthrough = phase == "play"
 	for p in particles:
 		p.p += p.v * dt
 		p.v.y += 500 * dt

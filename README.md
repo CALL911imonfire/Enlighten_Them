@@ -27,7 +27,7 @@ Options on the title screen: steady hands (no drill wobble), relaxed timers, mut
 
 - `scripts/core/game.gd`: global state (autoload `Game`): chapter order, Carl's saved appearance, settings, save file, zoom transitions.
 - `scripts/core/dialog.gd`: dialogue box (autoload `Dialog`).
-- `scripts/core/sfx.gd`: synthesized sound effects and music (autoload `Sfx`). The title screen, chapters 1 to 3 and the ending play CALL911imonfire's song "The Lights" from `music/`: five stems (chords, bass, melody, end, end echo) loop in sync and fade in or out as the story moves on. The other chapters have their own looping track (chords, bass, arpeggio and soft drums) rendered on a worker thread when the chapter starts. Volume goes through `Music` and `SFX` audio buses.
+- `scripts/core/sfx.gd`: synthesized sound effects and music (autoload `Sfx`). The title screen, chapters 1 to 3 and the ending play CALL911imonfire's song "The Lights" from `music/` (stems: chords, bass, melody, end, end echo), and Make Carl and Road to the Library play his song "Carl" (chords, bass, melody, melody run), which speeds up 15 BPM with each way of travel. Each song's stems loop in sync and fade in or out as the story moves on. The other chapters have their own looping track (chords, bass, arpeggio and soft drums) rendered on a worker thread when the chapter starts. Volume goes through `Music` and `SFX` audio buses.
 - `scripts/core/art.gd`: code-drawn art shared by every scene, including the light and Carl.
 - `scripts/core/stage.gd`: base class for chapters.
 - `scripts/scenes/`: one script per chapter.
@@ -57,7 +57,7 @@ godot --headless -s res://tools/render_music.gd -- --out=C:/some/folder
 
 ## AI disclosure
 
-Story, puzzles and jokes by CALL911imonfire. Code (including the code-drawn graphics and synthesized audio) and some dialogue written with Claude. No image-generation AI was used: every shape is drawn by code. The song "The Lights" was composed by CALL911imonfire. No samples or music-generation AI were used: the other music and all sound effects are synthesized by code while the game runs.
+Story, puzzles and jokes by CALL911imonfire. Code (including the code-drawn graphics and synthesized audio) and some dialogue written with Claude. No image-generation AI was used: every shape is drawn by code. The songs "The Lights" and "Carl" were composed by CALL911imonfire. No samples or music-generation AI were used: the other music and all sound effects are synthesized by code while the game runs.
 
 ## Asset licenses
 

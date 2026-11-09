@@ -1,6 +1,6 @@
 extends Node
-## Sound effects and music (autoload "Sfx"). Effects and most chapter tracks are
-## synthesized in code; chapters 0-3 and the ending play CALL911imonfire's own song.
+## Sound effects and music (autoload "Sfx"). Effects and some chapter tracks are
+## synthesized in code; chapters 0-5 and the ending play CALL911imonfire's own songs.
 ## tone() and noise() build short WAV streams on the fly and cache them.
 ## Music is composed per chapter from chords, bass, arpeggios and soft drums,
 ## rendered on a worker thread, and crossfaded between chapters.
@@ -391,50 +391,82 @@ const STYLES := {
 const MUSIC_DB := -12.0
 
 # ---------------------------------------------------------------- composed songs
-## CALL911imonfire's song "The Lights": five stems on the same 4-bar loop
-## (70 BPM, 13.71 s). They all play at once, in sync, and each one fades in or
-## out, so the song grows as the player moves forward.
-const STEMS := ["chords", "bass", "melody", "end", "end_echo"]
+## CALL911imonfire's own songs, each made of stems on one shared loop (70 BPM).
+## A song's stems all play at once, in sync, and each fades in or out, so the
+## music grows as the player moves forward. Stem ids are "<song>_<stem>", and
+## each one is res://music/<id>.wav.
+const SONGS := {
+	"lights": ["chords", "bass", "melody", "end", "end_echo"],   # 4 bars
+	"carl": ["chords", "bass", "melody", "melody_run"],          # 6 bars
+}
+const SONG_BPM := 70.0
 const STEM_DB := -9.0
-## Which stems each chapter plays. Chapters not listed use their generated track.
-const LIGHTS := {
-	0: ["chords"],
-	1: ["chords", "bass"],
-	2: ["chords", "bass", "melody"],
-	3: ["chords", "bass", "melody"],
+## Which stems each chapter starts with. Chapters not listed use their generated track.
+const LAYERS := {
+	0: ["lights_chords"],
+	1: ["lights_chords", "lights_bass"],
+	2: ["lights_chords", "lights_bass", "lights_melody"],
+	3: ["lights_chords", "lights_bass", "lights_melody"],
+	4: ["carl_chords"],
+	5: ["carl_chords", "carl_bass", "carl_melody_run"],
 }
-## Story cues that switch the song mid-chapter (see music_cue).
-const LIGHTS_CUES := {
-	"melody": ["chords", "bass", "melody"],  # chapter 1: putting the planets back
-	"end": ["chords", "bass", "end"],        # the Light settles into its recliner
-	"echo": ["end_echo"],                    # Carl is alone
+## Story cues that change the stems mid-chapter (see music_cue).
+const CUES := {
+	"melody": ["lights_chords", "lights_bass", "lights_melody"],  # chapter 1: putting the planets back
+	"end": ["lights_chords", "lights_bass", "lights_end"],        # the Light settles into its recliner
+	"echo": ["lights_end_echo"],                                  # Carl is alone
+	"carl_bass": ["carl_chords", "carl_bass"],                    # Make Carl: 3 parts on
+	"carl_melody": ["carl_chords", "carl_bass", "carl_melody"],   # Make Carl: 5 parts on
+	"carl_run": ["carl_chords", "carl_bass", "carl_melody_run"],  # Carl says "No."
 }
 
-var _stems := {}            # stem name -> AudioStreamPlayer
+var _stems := {}            # stem id -> AudioStreamPlayer
 var _stem_on: Array = []    # stems that should be audible now
+var _song_bus := -1         # bus with a pitch shifter, so songs can speed up without going higher
+var _shifter: AudioEffectPitchShift
+var _speed := 1.0           # song playback speed now
+var _speed_to := 1.0        # and where it's heading
 
 
-func _start_stems() -> void:
+func _load_stems() -> void:
 	if not _stems.is_empty():
 		return
-	for n in STEMS:
-		var s: AudioStreamWAV = load("res://music/lights_%s.wav" % n)
-		s.loop_mode = AudioStreamWAV.LOOP_FORWARD
-		s.loop_begin = 0
-		s.loop_end = int(round(s.get_length() * s.mix_rate))
-		var p := _new_music_player()
-		p.stream = s
-		_stems[n] = p
-	for n in STEMS:     # start together so they stay locked to the same beat
-		_stems[n].play()
+	_song_bus = _make_bus("Songs")
+	AudioServer.set_bus_send(_song_bus, "Music")
+	_shifter = AudioEffectPitchShift.new()
+	AudioServer.add_bus_effect(_song_bus, _shifter)
+	AudioServer.set_bus_effect_enabled(_song_bus, 0, false)
+	for song in SONGS:
+		for n in SONGS[song]:
+			var s: AudioStreamWAV = load("res://music/%s_%s.wav" % [song, n])
+			s.loop_mode = AudioStreamWAV.LOOP_FORWARD
+			s.loop_begin = 0
+			s.loop_end = int(round(s.get_length() * s.mix_rate))
+			var p := _new_music_player()
+			p.bus = "Songs"
+			p.stream = s
+			_stems["%s_%s" % [song, n]] = p
 
 
-## Fades the generated track out and the listed stems in.
+## Fades the generated track out and the listed stems in. A song that was silent
+## starts again from its first beat, with all its stems together.
 func _use_stems(names: Array) -> void:
-	_start_stems()
+	_load_stems()
+	for song in SONGS:
+		var wanted := false
+		var heard := false
+		for n in SONGS[song]:
+			var id: String = "%s_%s" % [song, n]
+			wanted = wanted or id in names
+			heard = heard or (id in _stem_on and _stems[id].playing)
+		if wanted and not heard:
+			for n in SONGS[song]:
+				var p: AudioStreamPlayer = _stems["%s_%s" % [song, n]]
+				p.volume_db = -80.0
+				p.play()
 	_stem_on = names
-	if _music_key != "lights":
-		_music_key = "lights"
+	if _music_key != "songs":
+		_music_key = "songs"
 		var tmp := _music_old
 		_music_old = _music
 		_music = tmp
@@ -443,20 +475,26 @@ func _use_stems(names: Array) -> void:
 
 ## Mid-chapter song changes, e.g. Sfx.music_cue("end").
 func music_cue(cue: String) -> void:
-	if Game.autotest or not LIGHTS_CUES.has(cue):
+	if Game.autotest or not CUES.has(cue):
 		return
-	_use_stems(LIGHTS_CUES[cue])
+	_use_stems(CUES[cue])
+
+
+## Plays the songs faster (bpm above 70) without raising their pitch.
+func music_bpm(bpm: float) -> void:
+	_speed_to = bpm / SONG_BPM
 
 
 func music_for(chapter: int) -> void:
 	_want_music = chapter
+	_speed_to = 1.0
 	if Game.autotest:
 		return
-	if LIGHTS.has(chapter):
-		_use_stems(LIGHTS[chapter])
+	if LAYERS.has(chapter):
+		_use_stems(LAYERS[chapter])
 		# render the next generated track early so it's ready when the song ends
 		var nxt := (chapter + 1) % MOODS.size()
-		if not LIGHTS.has(nxt):
+		if not LAYERS.has(nxt):
 			_queue_render(nxt)
 		return
 	_stem_on = []
@@ -490,6 +528,12 @@ func _fade_music(dt: float) -> void:
 		_music_old.volume_db -= dt * 30.0
 		if _music_old.volume_db < -60.0:
 			_music_old.stop()
+	if not is_equal_approx(_speed, _speed_to) and not _stems.is_empty():
+		_speed = move_toward(_speed, _speed_to, dt * 0.25)
+		for n in _stems:
+			_stems[n].pitch_scale = _speed
+		_shifter.pitch_scale = 1.0 / _speed
+		AudioServer.set_bus_effect_enabled(_song_bus, 0, not is_equal_approx(_speed, 1.0))
 	for n in _stems:
 		var p: AudioStreamPlayer = _stems[n]
 		if n in _stem_on:

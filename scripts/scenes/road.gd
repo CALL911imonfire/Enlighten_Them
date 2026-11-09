@@ -130,6 +130,7 @@ func begin() -> void:
 func _set_stage(i: int) -> void:
 	st = i
 	S = STAGES[i]
+	Sfx.music_bpm(70.0 + 15.0 * i)   # Carl's song speeds up with each way of travel
 	dist = 0.0
 	obs.clear()
 	particles.clear()

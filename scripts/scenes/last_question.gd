@@ -91,6 +91,7 @@ func _set_stage(i: int) -> void:
 			light_dim = 1.0
 			dim_to = 1.0
 			recline = 1.0
+			Sfx.music_cue("echo")
 			await Dialog.say(["CARL:...", "CARL:Alone. In the dark. With every answer except one.", "CARL:How can entropy be reversed?"])
 			phase = "morph"
 			morph = 0
@@ -103,6 +104,7 @@ func _cue(c: String) -> void:
 	match c:
 		"recline":
 			recline = 0.01
+			Sfx.music_cue("end")
 			Sfx.tone(200, 0.4, 0.04, "sine")
 		"fade":
 			dim_to = 1.0

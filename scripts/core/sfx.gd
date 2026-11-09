@@ -405,6 +405,7 @@ const LIGHTS := {
 }
 ## Story cues that switch the song mid-chapter (see music_cue).
 const LIGHTS_CUES := {
+	"melody": ["chords", "bass", "melody"],  # chapter 1: putting the planets back
 	"end": ["chords", "bass", "end"],        # the Light settles into its recliner
 	"echo": ["end_echo"],                    # Carl is alone
 }

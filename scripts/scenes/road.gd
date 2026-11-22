@@ -219,7 +219,7 @@ func _spawn(x: float) -> void:
 		"rock":
 			obs.append({"k": k, "x": x, "w": 28.0, "h": 22.0})
 		"log":
-			obs.append({"k": k, "x": x, "w": 48.0, "h": 18.0})
+			obs.append({"k": k, "x": x, "w": 38.0, "h": 18.0})
 		"hole":
 			obs.append({"k": k, "x": x, "w": randf_range(70, 120 if st == 2 else 100)})
 		"fence":

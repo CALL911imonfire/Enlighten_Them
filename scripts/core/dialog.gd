@@ -220,8 +220,9 @@ func _process(dt: float) -> void:
 		var before := int(_shown)
 		_shown = minf(_text.length(), _shown + dt * 46.0)
 		_body.visible_characters = int(_shown)
+		var every := Sfx.voice_every(_speaker)
 		for c in range(before, int(_shown)):
-			if c % 3 == 2 and _text[c] != " ":
+			if c % every == every - 1 and _text[c] != " ":
 				Sfx.type_blip(_speaker, _text[c])
 				break
 	elif _panel.visible:

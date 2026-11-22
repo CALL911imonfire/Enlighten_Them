@@ -241,29 +241,85 @@ func noise(dur: float, freq := 800.0, v := 0.5, kind := "band", delay := 0.0) ->
 	_play(_cache[key], v * 0.9, delay)
 
 
-func _voice(speaker: String) -> float:
-	match speaker:
-		"carl":
-			return 330.0
-		"lib":
-			return 250.0
-	return 520.0
+# ---------------------------------------------------------------- dialogue voices
+## Each speaker talks in dings. A voice is a root note, a set of notes (semitones
+## above the root) that letters pick from, and a bell timbre:
+##   partials: [frequency ratio, loudness] pairs; decay: seconds to fade;
+##   drop: how far the pitch sags right after the strike (a "boing");
+##   every: ding on every Nth typed letter (lower = chattier).
+## The same letter always gives the same note, so words have their own little tune.
+const VOICES := {
+	# The Light: high glassy bells on a major pentatonic, long shimmering ring.
+	"light": {"root": 880.0, "notes": [0, 2, 4, 7, 9, 12, 14], "decay": 0.45, "drop": 0.0,
+		"partials": [[1.0, 1.0], [2.76, 0.32], [5.4, 0.12], [1.003, 0.6]], "every": 4, "vol": 0.09},
+	# Carl: rounder mid-range dings that bounce around a wide major scale, short and springy.
+	"carl": {"root": 440.0, "notes": [0, 2, 4, 5, 7, 9, 11, 12], "decay": 0.13, "drop": 0.06,
+		"partials": [[1.0, 1.0], [2.0, 0.25], [3.0, 0.08]], "every": 3, "vol": 0.1},
+	# The librarian: a low, dry desk-bell clunk that barely moves (stern, a little minor).
+	"lib": {"root": 196.0, "notes": [0, 0, 3, 5, -2], "decay": 0.09, "drop": 0.0,
+		"partials": [[1.0, 1.0], [2.4, 0.45], [4.1, 0.2], [6.9, 0.08]], "every": 3, "vol": 0.11},
+	# Carl, the Beginning: Carl's notes in a higher register with the Light's shimmer.
+	"new": {"root": 659.3, "notes": [0, 2, 4, 7, 9, 12], "decay": 0.3, "drop": 0.02,
+		"partials": [[1.0, 1.0], [2.0, 0.3], [2.76, 0.2], [1.004, 0.5]], "every": 3, "vol": 0.09},
+}
 
 
-## The little sound when a new line of dialogue appears.
-func blip(speaker := "light") -> void:
-	tone(_voice(speaker), 0.05, 0.03)
+func _voice_of(speaker: String) -> Dictionary:
+	return VOICES.get(speaker, VOICES["light"])
 
 
-## A soft typing tick while dialogue writes itself out; the pitch wobbles with the letter.
-func type_blip(speaker: String, ch: String) -> void:
-	var steps := [1.0, 1.122, 0.891, 1.26]
-	var f: float = _voice(speaker) * steps[ch.unicode_at(0) % steps.size()]
-	var kind := "square" if speaker == "carl" else ("sawtooth" if speaker == "lib" else "triangle")
-	var key := "b%d_%s" % [int(f), kind]
+## How many typed letters go by between dings for this speaker.
+func voice_every(speaker: String) -> int:
+	return int(_voice_of(speaker).every)
+
+
+func _make_ding(freq: float, v: Dictionary) -> AudioStreamWAV:
+	var dur: float = v.decay
+	var n := int((dur * 2.2 + 0.02) * RATE)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var parts: Array = v.partials
+	var total := 0.0
+	for p in parts:
+		total += float(p[1])
+	var phases := PackedFloat32Array()
+	phases.resize(parts.size())
+	var drop: float = v.drop
+	for i in n:
+		var t := float(i) / RATE
+		var bend := 1.0 + drop * exp(-t / 0.025)
+		var s := 0.0
+		for k in parts.size():
+			var ratio: float = parts[k][0]
+			phases[k] += freq * ratio * bend / RATE
+			# higher partials fade faster, like a real bell
+			s += sin(phases[k] * TAU) * float(parts[k][1]) * exp(-t * ratio / dur)
+		var env := minf(1.0, t / 0.002)
+		if i > n - 200:
+			env *= float(n - i) / 200.0
+		out[i] = s / total * env
+	return _to_stream(out)
+
+
+func _ding(speaker: String, idx: int, loud := 1.0) -> void:
+	var v := _voice_of(speaker)
+	var notes: Array = v.notes
+	var semi: int = notes[posmod(idx, notes.size())]
+	var f: float = v.root * pow(2.0, semi / 12.0)
+	var key := "d_%s_%d" % [speaker, semi]
 	if not _cache.has(key):
-		_cache[key] = _make_tone(f, 0.035, kind)
-	_play(_cache[key], 0.07 if kind == "triangle" else 0.035)
+		_cache[key] = _make_ding(f, v)
+	_play(_cache[key], float(v.vol) * loud)
+
+
+## The little sound when a new line of dialogue appears: the speaker's root note.
+func blip(speaker := "light") -> void:
+	_ding(speaker, 0, 1.15)
+
+
+## A ding while dialogue writes itself out; the letter picks the note.
+func type_blip(speaker: String, ch: String) -> void:
+	_ding(speaker, ch.to_lower().hash())
 
 
 ## Button press.

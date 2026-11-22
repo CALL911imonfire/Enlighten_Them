@@ -1,2 +1,5 @@
 # Godot 4+ specific ignores
 .godot/
+
+# Marcus's original lane exports (large; the game uses the trimmed copies in music/)
+music/Alternative Music/

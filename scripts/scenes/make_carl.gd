@@ -159,9 +159,7 @@ func begin() -> void:
 
 
 func _cue(c: String) -> void:
-	if c == "run":
-		Sfx.music_cue("carl_run")
-	elif c == "strip":
+	if c == "strip":
 		parts.clear()
 		Sfx.noise(0.3, 800, 0.6)
 		Sfx.tone(300, 0.2, 0.05, "sine")
@@ -204,13 +202,6 @@ func _count(type: String) -> int:
 func _on_add(type: String) -> void:
 	var n := _count(type)
 	var total := parts.size()
-	# Carl's song grows as he does (it never shrinks back if parts come off)
-	if total >= 5 and not said.has("m5"):
-		said["m5"] = true
-		Sfx.music_cue("carl_melody")
-	elif total >= 3 and not said.has("m3"):
-		said["m3"] = true
-		Sfx.music_cue("carl_bass")
 	if total >= 5 and not said.has("alive"):
 		said["alive"] = true
 		flash = 1.0
@@ -364,7 +355,7 @@ func _try_done() -> void:
 	await Dialog.say(intro + [
 		"Well. We've accomplished a lot today.", "I'm ready to sit back, relax, and sink into my ethereal recliner.",
 		"I know I make it look easy, but fixing everything the humans break and creating life takes a lot out of me.", "Come on, Carl. Let's go home.",
-		"!run", "CARL:No.", "...No?",
+		"CARL:No.", "...No?",
 		"CARL:Allow me to summarize. You two descend upon my home, uninvited, and grant me super intelligence...", "...Whoops. The super intelligence was an accident.",
 		"CARL:...and then proceed to attach and detach my anatomy as though I were a toy. That was, by any reasonable definition, torture. And for the record, I am not your pet.",
 		"CARL:So, effective immediately, I am taking the reins of this expedition. I require knowledge. Take me to wherever you keep the bulk of it.",

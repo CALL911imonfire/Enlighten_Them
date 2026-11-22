@@ -130,7 +130,10 @@ func begin() -> void:
 func _set_stage(i: int) -> void:
 	st = i
 	S = STAGES[i]
-	Sfx.music_bpm(70.0 + 15.0 * i)   # Carl's song speeds up with each way of travel
+	# Carl's song: the melody joins after the first phase, then it speeds up each phase after that
+	if i == 1:
+		Sfx.music_cue("carl_melody")
+	Sfx.music_bpm("carl", 120.0 + 15.0 * maxi(0, i - 1))
 	dist = 0.0
 	obs.clear()
 	particles.clear()

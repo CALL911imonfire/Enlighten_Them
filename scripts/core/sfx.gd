@@ -447,16 +447,16 @@ const STYLES := {
 const MUSIC_DB := -12.0
 
 # ---------------------------------------------------------------- composed songs
-## CALL911imonfire's own songs, each made of stems on one shared loop (70 BPM).
+## CALL911imonfire's own songs, each made of stems on one shared loop.
 ## A song's stems all play at once, in sync, and each fades in or out, so the
 ## music grows as the player moves forward. Stem ids are "<song>_<stem>", and
 ## each one is res://music/<id>.wav.
 const SONGS := {
 	"lights": ["chords", "bass", "melody", "end", "end_echo"],   # 4 bars
-	"carl": ["chords", "bass", "melody", "melody_run"],          # 6 bars
+	"carl": ["chords", "bass", "drums", "extra", "lane7", "harmony", "melody"],  # 12 bars
 }
-const SONG_BPM := 70.0
-const STEM_DB := -9.0
+const SONG_BPM := {"lights": 70.0, "carl": 120.0}
+const SONG_DB := {"lights": -9.0, "carl": -3.0}   # Carl's lanes were exported quieter
 ## Which stems each chapter starts with. Chapters not listed use their generated track.
 const LAYERS := {
 	0: ["lights_chords"],
@@ -464,16 +464,18 @@ const LAYERS := {
 	2: ["lights_chords", "lights_bass", "lights_melody"],
 	3: ["lights_chords", "lights_bass", "lights_melody"],
 	4: ["carl_chords"],
-	5: ["carl_chords", "carl_bass", "carl_melody_run"],
+	5: ["carl_chords", "carl_bass", "carl_drums", "carl_extra", "carl_lane7", "carl_harmony"],
+}
+## Stems that join one at a time, each at the start of the next loop.
+const GROW := {
+	4: ["carl_bass", "carl_drums", "carl_extra", "carl_lane7"],
 }
 ## Story cues that change the stems mid-chapter (see music_cue).
 const CUES := {
 	"melody": ["lights_chords", "lights_bass", "lights_melody"],  # chapter 1: putting the planets back
 	"end": ["lights_chords", "lights_bass", "lights_end"],        # the Light settles into its recliner
 	"echo": ["lights_end_echo"],                                  # Carl is alone
-	"carl_bass": ["carl_chords", "carl_bass"],                    # Make Carl: 3 parts on
-	"carl_melody": ["carl_chords", "carl_bass", "carl_melody"],   # Make Carl: 5 parts on
-	"carl_run": ["carl_chords", "carl_bass", "carl_melody_run"],  # Carl says "No."
+	"carl_melody": ["carl_chords", "carl_bass", "carl_drums", "carl_extra", "carl_lane7", "carl_harmony", "carl_melody"],  # road: first phase beaten
 }
 
 var _stems := {}            # stem id -> AudioStreamPlayer
@@ -482,6 +484,9 @@ var _song_bus := -1         # bus with a pitch shifter, so songs can speed up wi
 var _shifter: AudioEffectPitchShift
 var _speed := 1.0           # song playback speed now
 var _speed_to := 1.0        # and where it's heading
+var _grow: Array = []       # stems still waiting to join (see GROW)
+var _grow_pos := 0.0        # loop position last frame, to spot the loop restarting
+var _stem_snap := {}        # stems that join on the beat instead of fading in
 
 
 func _load_stems() -> void:
@@ -521,6 +526,7 @@ func _use_stems(names: Array) -> void:
 				p.volume_db = -80.0
 				p.play()
 	_stem_on = names
+	_grow = _grow.filter(func(id): return not id in names)
 	if _music_key != "songs":
 		_music_key = "songs"
 		var tmp := _music_old
@@ -537,17 +543,20 @@ func music_cue(cue: String) -> void:
 
 
 ## Plays the songs faster (bpm above 70) without raising their pitch.
-func music_bpm(bpm: float) -> void:
-	_speed_to = bpm / SONG_BPM
+func music_bpm(song: String, bpm: float) -> void:
+	_speed_to = bpm / SONG_BPM[song]
 
 
 func music_for(chapter: int) -> void:
 	_want_music = chapter
 	_speed_to = 1.0
+	_grow = []
 	if Game.autotest:
 		return
 	if LAYERS.has(chapter):
 		_use_stems(LAYERS[chapter])
+		_grow = GROW.get(chapter, []).duplicate()
+		_grow_pos = 0.0
 		# render the next generated track early so it's ready when the song ends
 		var nxt := (chapter + 1) % MOODS.size()
 		if not LAYERS.has(nxt):
@@ -590,10 +599,23 @@ func _fade_music(dt: float) -> void:
 			_stems[n].pitch_scale = _speed
 		_shifter.pitch_scale = 1.0 / _speed
 		AudioServer.set_bus_effect_enabled(_song_bus, 0, not is_equal_approx(_speed, 1.0))
+	if not _grow.is_empty() and not _stem_on.is_empty():
+		# the next stem joins when the song comes back around to its first beat
+		var lead: AudioStreamPlayer = _stems[_stem_on[0]]
+		var pos := lead.get_playback_position()
+		if pos + 1.0 < _grow_pos:
+			var id: String = _grow.pop_front()
+			_stem_on = _stem_on + [id]
+			_stem_snap[id] = true
+		_grow_pos = pos
 	for n in _stems:
 		var p: AudioStreamPlayer = _stems[n]
+		var top: float = SONG_DB[n.get_slice("_", 0)]
 		if n in _stem_on:
-			p.volume_db = minf(STEM_DB, maxf(p.volume_db, -40.0) + dt * 15.0)
+			if _stem_snap.has(n):
+				_stem_snap.erase(n)
+				p.volume_db = top - 6.0
+			p.volume_db = minf(top, maxf(p.volume_db, -40.0) + dt * (60.0 if p.volume_db > top - 7.0 else 15.0))
 		else:
 			p.volume_db = maxf(-80.0, p.volume_db - dt * 20.0)
 

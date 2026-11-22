@@ -454,9 +454,10 @@ const MUSIC_DB := -12.0
 const SONGS := {
 	"lights": ["chords", "bass", "melody", "end", "end_echo"],   # 4 bars
 	"carl": ["chords", "bass", "drums", "extra", "lane7", "harmony", "melody"],  # 12 bars
+	"sick": ["song"],                                            # one full 40-bar track
 }
-const SONG_BPM := {"lights": 70.0, "carl": 120.0}
-const SONG_DB := {"lights": -9.0, "carl": -3.0}   # Carl's lanes were exported quieter
+const SONG_BPM := {"lights": 70.0, "carl": 120.0, "sick": 120.0}
+const SONG_DB := {"lights": -9.0, "carl": -3.0, "sick": -2.0}   # later exports came out quieter
 ## Which stems each chapter starts with. Chapters not listed use their generated track.
 const LAYERS := {
 	0: ["lights_chords"],
@@ -465,16 +466,21 @@ const LAYERS := {
 	3: ["lights_chords", "lights_bass", "lights_melody"],
 	4: ["carl_chords"],
 	5: ["carl_chords", "carl_bass", "carl_drums", "carl_extra", "carl_lane7", "carl_harmony"],
+	8: ["sick_song"],
 }
-## Stems that join one at a time, each at the start of the next loop.
+## A chapter can step through stem sets, moving to the next one each time the
+## loop comes back to its first beat, and starting over after the last.
+const CARL_ALL := ["carl_chords", "carl_bass", "carl_drums", "carl_extra", "carl_lane7"]
 const GROW := {
-	4: ["carl_bass", "carl_drums", "carl_extra", "carl_lane7"],
+	4: [["carl_chords"], ["carl_chords", "carl_bass"], ["carl_chords", "carl_bass", "carl_drums"],
+		["carl_chords", "carl_bass", "carl_drums", "carl_extra"], CARL_ALL],
 }
 ## Story cues that change the stems mid-chapter (see music_cue).
 const CUES := {
 	"melody": ["lights_chords", "lights_bass", "lights_melody"],  # chapter 1: putting the planets back
 	"end": ["lights_chords", "lights_bass", "lights_end"],        # the Light settles into its recliner
 	"echo": ["lights_end_echo"],                                  # Carl is alone
+	"carl_all": CARL_ALL,                                          # Make Carl: Done pressed
 	"carl_melody": ["carl_chords", "carl_bass", "carl_drums", "carl_extra", "carl_lane7", "carl_harmony", "carl_melody"],  # road: first phase beaten
 }
 
@@ -484,9 +490,10 @@ var _song_bus := -1         # bus with a pitch shifter, so songs can speed up wi
 var _shifter: AudioEffectPitchShift
 var _speed := 1.0           # song playback speed now
 var _speed_to := 1.0        # and where it's heading
-var _grow: Array = []       # stems still waiting to join (see GROW)
+var _grow: Array = []       # stem sets this chapter steps through (see GROW)
+var _grow_i := 0
 var _grow_pos := 0.0        # loop position last frame, to spot the loop restarting
-var _stem_snap := {}        # stems that join on the beat instead of fading in
+var _stem_snap := {}        # stems that join or leave on the beat instead of fading
 
 
 func _load_stems() -> void:
@@ -526,7 +533,6 @@ func _use_stems(names: Array) -> void:
 				p.volume_db = -80.0
 				p.play()
 	_stem_on = names
-	_grow = _grow.filter(func(id): return not id in names)
 	if _music_key != "songs":
 		_music_key = "songs"
 		var tmp := _music_old
@@ -539,6 +545,7 @@ func _use_stems(names: Array) -> void:
 func music_cue(cue: String) -> void:
 	if Game.autotest or not CUES.has(cue):
 		return
+	_grow = []
 	_use_stems(CUES[cue])
 
 
@@ -555,7 +562,8 @@ func music_for(chapter: int) -> void:
 		return
 	if LAYERS.has(chapter):
 		_use_stems(LAYERS[chapter])
-		_grow = GROW.get(chapter, []).duplicate()
+		_grow = GROW.get(chapter, [])
+		_grow_i = 0
 		_grow_pos = 0.0
 		# render the next generated track early so it's ready when the song ends
 		var nxt := (chapter + 1) % MOODS.size()
@@ -600,13 +608,16 @@ func _fade_music(dt: float) -> void:
 		_shifter.pitch_scale = 1.0 / _speed
 		AudioServer.set_bus_effect_enabled(_song_bus, 0, not is_equal_approx(_speed, 1.0))
 	if not _grow.is_empty() and not _stem_on.is_empty():
-		# the next stem joins when the song comes back around to its first beat
+		# the next set starts when the song comes back around to its first beat
 		var lead: AudioStreamPlayer = _stems[_stem_on[0]]
 		var pos := lead.get_playback_position()
 		if pos + 1.0 < _grow_pos:
-			var id: String = _grow.pop_front()
-			_stem_on = _stem_on + [id]
-			_stem_snap[id] = true
+			_grow_i = (_grow_i + 1) % _grow.size()
+			var names: Array = _grow[_grow_i]
+			for id in _stems:
+				if (id in names) != (id in _stem_on):
+					_stem_snap[id] = true
+			_stem_on = names
 		_grow_pos = pos
 	for n in _stems:
 		var p: AudioStreamPlayer = _stems[n]
@@ -617,7 +628,9 @@ func _fade_music(dt: float) -> void:
 				p.volume_db = top - 6.0
 			p.volume_db = minf(top, maxf(p.volume_db, -40.0) + dt * (60.0 if p.volume_db > top - 7.0 else 15.0))
 		else:
-			p.volume_db = maxf(-80.0, p.volume_db - dt * 20.0)
+			p.volume_db = maxf(-80.0, p.volume_db - dt * (120.0 if _stem_snap.has(n) else 20.0))
+			if p.volume_db <= -80.0:
+				_stem_snap.erase(n)
 
 
 func _queue_render(chapter: int, urgent := false) -> void:

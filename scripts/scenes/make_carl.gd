@@ -337,6 +337,7 @@ func _try_done() -> void:
 	phase = "name"
 	for b in tools:
 		b.visible = false
+	Sfx.music_cue("carl_all")   # every part of Carl's song back in
 	Game.set_carl(color, parts)
 	var legs := _count("leg")
 	var lw: String = WORDS[legs] if legs < WORDS.size() else str(legs)

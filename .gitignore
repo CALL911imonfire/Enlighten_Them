@@ -3,3 +3,6 @@
 
 # Marcus's original lane exports (large; the game uses the trimmed copies in music/)
 music/Alternative Music/
+
+# Export builds for itch.io
+build/

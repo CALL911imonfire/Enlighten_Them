@@ -454,12 +454,13 @@ const MUSIC_DB := -12.0
 const SONGS := {
 	"lights": ["chords", "bass", "end", "end_echo"],            # 4 bars
 	"carl": ["chords", "bass", "drums", "extra", "lane7", "harmony", "melody"],  # 12 bars
-	"sick": ["song"],                                            # one full 40-bar track
+	"glow": ["song"],                                            # one full 52-bar track (104 s)
+	"glow2": ["song"],                                           # Glow 2, a 4-bar loop
 	"lightsfull": ["song"],                                      # The Lights, full arrangement (112 s)
 	"library": ["song", "lane5"],                                # 80 BPM, 24 bars (72 s)
 }
-const SONG_BPM := {"lights": 70.0, "carl": 120.0, "sick": 120.0, "lightsfull": 120.0, "library": 80.0}
-const SONG_DB := {"lights": -9.0, "carl": -3.0, "sick": -2.0, "lightsfull": 0.0, "library": -2.0}   # later exports came out quieter
+const SONG_BPM := {"lights": 70.0, "carl": 120.0, "glow": 120.0, "glow2": 120.0, "lightsfull": 120.0, "library": 80.0}
+const SONG_DB := {"lights": -9.0, "carl": -3.0, "glow": -2.0, "glow2": -2.0, "lightsfull": 0.0, "library": -2.0}   # later exports came out quieter
 ## Which stems each chapter starts with. Chapters not listed use their generated track.
 const LAYERS := {
 	0: ["lights_chords"],
@@ -470,8 +471,13 @@ const LAYERS := {
 	5: ["carl_chords", "carl_bass", "carl_drums", "carl_extra", "carl_lane7", "carl_harmony"],
 	6: ["library_song"],
 	7: ["library_song"],
-	8: ["sick_song"],
+	8: ["glow_song"],
+	9: ["glow_song"],
+	10: ["glow2_song"],
 }
+## Chapters whose song waits for the previous one to reach the end of its loop
+## (if it's still playing), so it finishes instead of being cut off.
+const FINISH_FIRST := {1: "lights_chords", 10: "glow_song"}
 ## A chapter can step through stem sets, moving to the next one each time the
 ## loop comes back to its first beat, and starting over after the last.
 const CARL_ALL := ["carl_chords", "carl_bass", "carl_drums", "carl_extra", "carl_lane7"]
@@ -552,6 +558,7 @@ func music_cue(cue: String) -> void:
 	if Game.autotest or not CUES.has(cue):
 		return
 	_grow = []
+	_handoff = []
 	_use_stems(CUES[cue])
 
 
@@ -567,9 +574,9 @@ func music_for(chapter: int) -> void:
 	_handoff = []
 	if Game.autotest:
 		return
-	# leaving the title: let the menu music finish its loop before chapter 1's song starts
-	if chapter == 1 and _stem_on == LAYERS[0] and _stems[_stem_on[0]].playing:
-		_handoff = LAYERS[1]
+	# e.g. leaving the title: let the menu music finish its loop before chapter 1's song starts
+	if FINISH_FIRST.has(chapter) and _stem_on == [FINISH_FIRST[chapter]] and _stems[_stem_on[0]].playing:
+		_handoff = LAYERS[chapter]
 		_grow_pos = _stems[_stem_on[0]].get_playback_position()
 		return
 	if LAYERS.has(chapter):

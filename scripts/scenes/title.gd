@@ -167,7 +167,7 @@ func paint() -> void:
 				"Story, puzzles and jokes: CALL911imonfire",
 				"Code, code-drawn graphics, synthesized sound and some dialogue written with Claude.",
 				"No image-generation AI was used. Every shape is drawn by code.",
-				"Music: \"The Lights\", \"Carl\", \"Library\" and \"Sick\" by CALL911imonfire. Other music and sounds are made by code.",
+				"Music: \"The Lights\", \"Carl\", \"Library\" and \"Glow\" by CALL911imonfire. Other music and sounds are made by code.",
 				"Made in Godot for GitHub Game Off 2026. Theme: SHIFT.",
 			]
 			for i in lines.size():

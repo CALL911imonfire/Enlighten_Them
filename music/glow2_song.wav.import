@@ -2,13 +2,13 @@
 
 importer="wav"
 type="AudioStreamWAV"
-uid="uid://2kvko20vjs7w"
-path="res://.godot/imported/sick_song.wav-5e94ec9c89603dae2db658eee488059a.sample"
+uid="uid://bfs0u2aq4o03u"
+path="res://.godot/imported/glow2_song.wav-6fd2dbc77bc88acba5aa5b26d2ef80b2.sample"
 
 [deps]
 
-source_file="res://music/sick_song.wav"
-dest_files=["res://.godot/imported/sick_song.wav-5e94ec9c89603dae2db658eee488059a.sample"]
+source_file="res://music/glow2_song.wav"
+dest_files=["res://.godot/imported/glow2_song.wav-6fd2dbc77bc88acba5aa5b26d2ef80b2.sample"]
 
 [params]
 

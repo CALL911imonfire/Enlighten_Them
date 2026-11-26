@@ -32,7 +32,7 @@ const CONT := {
 	"S": {"name": "South America", "drift": Vector2(-80, 55), "hue": 0.32, "chip": "Careful! That was the Amazon. Probably.",
 		"free": "South America slides away. Look how it still fits against Africa, like a puzzle piece. That's how the humans figured all this out."},
 	"A": {"name": "Africa", "drift": Vector2(15, 30), "hue": 0.15, "chip": "Ow. That was part of Africa. It needed that.",
-		"free": "♪ I bless the rains down in Africa... ♪", "mic": true},
+		"free": "~ I bless the rains down in Africa... ~", "mic": true},
 	"U": {"name": "Australia", "drift": Vector2(95, 60), "hue": 0.09, "chip": "That was Australia. Everything there was trying to kill you anyway.",
 		"free": "Australia, off on its own. That explains a lot about the animals."},
 	"T": {"name": "Antarctica", "drift": Vector2(0, 95), "hue": 0.55, "chip": "You drilled into Antarctica. The penguins saw that.",
@@ -764,10 +764,13 @@ func paint() -> void:
 	_draw_switch()
 	light(lt + Vector2(0, sin(t * 1.6) * 5), 20, {"mic": mic_t > 0, "hat": hat_t > 0 or drill_hat_t > 0, "squint": on_light and drilling})
 	if not fish_on:
-		var dmg := ""
+		txt(Vector2(16, 662), "Damage:", 14, Color("d8d3e6"), -1)
 		for i in 3:
-			dmg += "●" if i < chips else "○"
-		txt(Vector2(16, 662), "Damage: " + dmg, 14, Color("d8d3e6"), -1)
+			var dp := Vector2(86 + i * 16, 657)
+			if i < chips:
+				dot(dp, 5.5, Color("d8d3e6"))
+			else:
+				Art.ellipse_line(self, dp, 5, 5, Color("d8d3e6"), 1.5)
 	var m := mouse()
 	if phase == "play" and not busy() and not _on_switch(m) and Rect2(0, 0, VW, VH).has_point(m):
 		_draw_drill(_tip())

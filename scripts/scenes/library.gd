@@ -510,7 +510,8 @@ func paint() -> void:
 		if hl or sel == i:
 			draw_rect(Rect2(c.position.x + 4 + sx, c.position.y - 2, c.size.x - 8, c.size.y - 4), Color("7fe0ff") if hl else Color("ffcf5a"), false, 3.0)
 		if done_set.has(i):
-			txt(Vector2(c.position.x + c.size.x / 2, c.position.y + 14), "✓", 14, Color("ffe9a8"))
+			var ck := Vector2(c.position.x + c.size.x / 2, c.position.y + 9)
+			draw_polyline(PackedVector2Array([ck + Vector2(-5, 0), ck + Vector2(-1, 4), ck + Vector2(6, -5)]), Color("ffe9a8"), 2.0, true)
 		var s: Array = stacks[i]
 		var rl := _run_len(s) if sel == i else 0
 		for k in s.size():
@@ -557,11 +558,36 @@ func _pot(p: Vector2, w: float, h: float, col: Color) -> void:
 	draw_rect(Rect2(p + Vector2(w * 0.18, -h + 4), Vector2(3, h - 8)), Color(1, 1, 1, 0.12))
 
 
+## Leaves are collected and drawn in one batch per plant (the ferns alone have over
+## two hundred), which keeps the first room from stuttering in the browser.
+var _leaf_pts := PackedVector2Array()
+var _leaf_cols := PackedColorArray()
+var _leaf_idx := PackedInt32Array()
+var _vein_pts := PackedVector2Array()
+var _vein_cols := PackedColorArray()
+
+
 func _leaf(base: Vector2, ang: float, ln: float, wd: float, col: Color) -> void:
 	var d := Vector2.from_angle(ang)
 	var n := Vector2(-d.y, d.x)
-	draw_colored_polygon(PackedVector2Array([base, base + d * ln * 0.5 + n * wd, base + d * ln, base + d * ln * 0.5 - n * wd]), col)
-	draw_line(base, base + d * ln * 0.9, Art.shade(col, 0.75), 1.0)
+	var i := _leaf_pts.size()
+	_leaf_pts.append_array(PackedVector2Array([base, base + d * ln * 0.5 + n * wd, base + d * ln, base + d * ln * 0.5 - n * wd]))
+	_leaf_cols.append_array(PackedColorArray([col, col, col, col]))
+	_leaf_idx.append_array(PackedInt32Array([i, i + 1, i + 2, i, i + 2, i + 3]))
+	var vc := Art.shade(col, 0.75)
+	_vein_pts.append_array(PackedVector2Array([base, base + d * ln * 0.9]))
+	_vein_cols.append(vc)
+
+
+func _flush_leaves() -> void:
+	if _leaf_idx.size() > 0:
+		RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), _leaf_idx, _leaf_pts, _leaf_cols)
+		draw_multiline_colors(_vein_pts, _vein_cols, 1.0)
+	_leaf_pts.clear()
+	_leaf_cols.clear()
+	_leaf_idx.clear()
+	_vein_pts.clear()
+	_vein_cols.clear()
 
 
 func _fern(p: Vector2, s: float) -> void:
@@ -575,6 +601,7 @@ func _fern(p: Vector2, s: float) -> void:
 			var q := (p + Vector2(0, -32 * s)).lerp(tip, f)
 			_leaf(q, a - 0.9, 10 * s * (1.1 - f), 2.4 * s, Color("3f8a3a"))
 			_leaf(q, a + 0.9, 10 * s * (1.1 - f), 2.4 * s, Color("4f9a3e"))
+	_flush_leaves()
 
 
 func _snake_plant(p: Vector2, s: float) -> void:
@@ -602,6 +629,7 @@ func _ficus(p: Vector2, s: float) -> void:
 		var r := (8 + (i * 7) % 34) * s
 		var q := top + Vector2(cos(a) * r * 1.2, sin(a) * r * 0.9 + 4 * s)
 		_leaf(q, a + 0.6, 13 * s, 5 * s, Color("4f9a3e") if i % 3 else Color("6fb35c"))
+	_flush_leaves()
 
 
 func _cactus(p: Vector2, s: float) -> void:
@@ -802,6 +830,7 @@ func _hanging_plant(p: Vector2) -> void:
 		draw_polyline(pts, Color("3f8a3a"), 1.5)
 		for k in range(1, 6):
 			_leaf(pts[k], PI / 2 + (0.8 if k % 2 else -0.8), 9, 3, Color("5aa34a") if (i + k) % 2 else Color("3f8a3a"))
+	_flush_leaves()
 
 
 func _tv_cart(p: Vector2) -> void:

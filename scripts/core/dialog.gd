@@ -75,7 +75,7 @@ func _ready() -> void:
 	_hint.position = Vector2(1232 - 190, BOX_H - 30)
 	_hint.size = Vector2(170, 24)
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_hint.text = "click to continue ▸"
+	_hint.text = "click to continue  >"
 	_hint.add_theme_font_size_override("font_size", 14)
 	_panel.add_child(_hint)
 	_panel.visible = false

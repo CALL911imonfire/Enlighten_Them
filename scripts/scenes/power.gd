@@ -46,7 +46,7 @@ func setup() -> void:
 	VW = 600
 	VH = 600
 	stars = Art.make_stars(140, Rect2(-300, -100, 1200, 800), 21)
-	run_btn = button("Run the day ▶", Vector2(390, 548), Vector2(140, 40), _run_day, 16)
+	run_btn = button("Run the day  >", Vector2(390, 548), Vector2(140, 40), _run_day, 16)
 	hint_btn = button("Hint", Vector2(536, 548), Vector2(60, 40), _hint, 16)
 	run_btn.visible = false
 	ring.resize(12)

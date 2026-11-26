@@ -47,8 +47,8 @@ func setup() -> void:
 	for p in PLUGS0:
 		plugs.append({"j": p.j, "p": p.p, "done": false})
 	target = randf_range(0.15, 0.3) if randf() < 0.5 else randf_range(0.7, 0.85)
-	var l := button("◀ Tracking", Vector2(185, 470), Vector2(110, 38), func(): pass, 15)
-	var r := button("Tracking ▶", Vector2(305, 470), Vector2(110, 38), func(): pass, 15)
+	var l := button("<  Tracking", Vector2(185, 470), Vector2(110, 38), func(): pass, 15)
+	var r := button("Tracking  >", Vector2(305, 470), Vector2(110, 38), func(): pass, 15)
 	l.button_down.connect(_hold.bind(-1.0))
 	r.button_down.connect(_hold.bind(1.0))
 	l.button_up.connect(_hold.bind(0.0))
@@ -650,7 +650,7 @@ func _draw_screen() -> void:
 				var hl: bool = phase == "login" and Rect2(200, y, 200, 26).has_point(mouse())
 				draw_rect(Rect2(200, y, 200, 26), Color("444444") if hl else Color("333333"))
 			Art.text(self, Vector2(208, 158), login.acct, 14, Color.WHITE, -1)
-			Art.text(self, Vector2(208, 198), "•".repeat(login.pass.length()), 14, Color.WHITE, -1)
+			Art.text(self, Vector2(208, 198), "*".repeat(login.pass.length()), 14, Color.WHITE, -1)
 			Art.round_rect(self, Rect2(250, 222, 100, 26), 4, Color("e50914"))
 			txt(Vector2(300, 240), "Sign In", 13, Color.WHITE)
 		if phase == "profiles":

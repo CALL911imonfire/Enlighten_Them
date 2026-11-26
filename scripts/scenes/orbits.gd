@@ -21,7 +21,7 @@ const PL := [
 	{"id": "jupiter", "name": "Jupiter", "r": 20.0, "col": "d9a066", "quip": "Jupiter is enormous. Put it out past Mars, where it has room to sprawl.",
 		"yes": "Jupiter! See that big red spot? It's a storm bigger than Earth that's been raging for centuries. Some planets really hold a grudge."},
 	{"id": "saturn", "name": "Saturn", "r": 16.0, "col": "e6cf8b", "quip": "Saturn goes sixth, right after Jupiter. Look for the bling.",
-		"yes": "Saturn! ♪ I liked it, so I put a ring on it ♪ ...Sorry. I get carried away."},
+		"yes": "Saturn! ~ I liked it, so I put a ring on it ~ ...Sorry. I get carried away."},
 	{"id": "uranus", "name": "Uranus", "r": 13.0, "col": "9fe3e6", "quip": "Uranus goes seventh, after Saturn. Yes, it's a funny name. Focus.",
 		"yes": "Uranus. Go on, get the joke out of your system. ...Done? It also spins on its side. Nobody knows why."},
 	{"id": "neptune", "name": "Neptune", "r": 13.0, "col": "4a6fe0", "quip": "Neptune is the last one. Way out there, past Uranus.",
@@ -346,13 +346,19 @@ func _draw_body(b: Dictionary, label: bool) -> void:
 		txt(x + Vector2(0, maxf(r, 14) + 20), b.p.name, 13, Color("d8d3e6"))
 
 
+## Draws all the dashes in one call; hundreds of separate little arcs made this
+## chapter choppy in the browser until most rings were filled.
 func _dashed_circle(c: Vector2, r: float, col: Color, w: float, dash := 6.0, gap := 8.0) -> void:
 	var circ := TAU * r
 	var n := int(circ / (dash + gap))
+	var pts := PackedVector2Array()
+	pts.resize(n * 2)
 	for i in n:
 		var a0 := float(i) / n * TAU
 		var a1 := a0 + dash / r
-		draw_arc(c, r, a0, a1, 4, col, w, true)
+		pts[i * 2] = c + Vector2(cos(a0), sin(a0)) * r
+		pts[i * 2 + 1] = c + Vector2(cos(a1), sin(a1)) * r
+	draw_multiline(pts, col, w)
 
 
 func paint() -> void:

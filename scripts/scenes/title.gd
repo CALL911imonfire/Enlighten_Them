@@ -66,7 +66,7 @@ func _build_menu() -> void:
 
 func _toggle(label: String, k: String, i: int) -> void:
 	var on: bool = Game.settings.get(k, false)
-	_btn(("☑  " if on else "☐  ") + label, Vector2(400, 250 + i * 58), 480, func():
+	_btn(label + (":  On" if on else ":  Off"), Vector2(400, 250 + i * 58), 480, func():
 		if k == "muted":
 			Sfx.toggle_mute()
 		else:

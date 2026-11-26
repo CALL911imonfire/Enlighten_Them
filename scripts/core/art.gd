@@ -7,6 +7,7 @@ extends RefCounted
 ## Camera transform of the scene currently drawing. Art functions draw on top of it.
 static var cam := Transform2D()
 static var _glow_tex: GradientTexture2D
+static var _dot_tex: ImageTexture
 static var _font: Font
 static var _serif: SystemFont
 
@@ -61,6 +62,10 @@ static func ellipse_pts(c: Vector2, rx: float, ry: float, rot := 0.0, n := 40, a
 static func ellipse(ci: CanvasItem, c: Vector2, rx: float, ry: float, col: Color, rot := 0.0) -> void:
 	if rx < 0.3 or ry < 0.3:
 		return
+	if rot == 0.0 and maxf(rx, ry) <= DOT_MAX:
+		var k := DOT_TEX / (DOT_TEX - 2.0)
+		ci.draw_texture_rect(_dtex(), Rect2(c - Vector2(rx, ry) * k, Vector2(rx, ry) * 2.0 * k), false, col)
+		return
 	ci.draw_colored_polygon(ellipse_pts(c, rx, ry, rot, 36), col)
 
 
@@ -113,6 +118,34 @@ static func _gtex() -> GradientTexture2D:
 	return _glow_tex
 
 
+## A solid white disc with a soft one-texel edge, drawn in code once. Small circles
+## and ellipses use it instead of a fresh polygon each frame, which is far cheaper
+## (especially in the browser build).
+const DOT_TEX := 128
+const DOT_MAX := 40.0   # bigger shapes still use real polygons so their edges stay crisp
+
+
+static func _dtex() -> ImageTexture:
+	if _dot_tex == null:
+		var img := Image.create(DOT_TEX, DOT_TEX, false, Image.FORMAT_RGBA8)
+		var h := DOT_TEX / 2.0
+		for y in DOT_TEX:
+			for x in DOT_TEX:
+				var d := Vector2(x + 0.5 - h, y + 0.5 - h).length()
+				img.set_pixel(x, y, Color(1, 1, 1, clampf(h - 1.0 - d + 0.5, 0.0, 1.0)))
+		_dot_tex = ImageTexture.create_from_image(img)
+	return _dot_tex
+
+
+## Same as dot(ci, ), but cheap for small circles.
+static func dot(ci: CanvasItem, pos: Vector2, r: float, col: Color) -> void:
+	if r > DOT_MAX:
+		ci.draw_circle(pos, r, col)
+	elif r > 0.0:
+		var e := r * DOT_TEX / (DOT_TEX - 2.0)   # the disc stops one texel short of the edge
+		ci.draw_texture_rect(_dtex(), Rect2(pos - Vector2(e, e), Vector2(e, e) * 2.0), false, col)
+
+
 ## Soft radial glow (an additive-looking blob).
 static func glow(ci: CanvasItem, pos: Vector2, radius: float, col: Color) -> void:
 	if radius <= 0.5 or col.a <= 0.0:
@@ -137,7 +170,7 @@ static func draw_stars(ci: CanvasItem, stars: Array, t: float, alpha := 1.0) -> 
 		c.a = a
 		if s.s > 1.6:
 			glow(ci, s.p, s.s * 4.0, Color(c.r, c.g, c.b, a * 0.35))
-		ci.draw_circle(s.p, s.s * 0.6, c)
+		dot(ci, s.p, s.s * 0.6, c)
 
 
 static func vignette(ci: CanvasItem, r: Rect2, strength := 0.55) -> void:
@@ -161,10 +194,10 @@ static func note(ci: CanvasItem, p: Vector2, s: float, col: Color, double := fal
 
 ## A shaded sphere: stacked circles that drift towards the light source.
 static func ball(ci: CanvasItem, pos: Vector2, r: float, col: Color, light_dir := Vector2(-0.4, -0.4)) -> void:
-	ci.draw_circle(pos, r, shade(col, 0.45))
+	dot(ci, pos, r, shade(col, 0.45))
 	for i in 7:
 		var k := float(i + 1) / 8.0
-		ci.draw_circle(pos + light_dir * r * k * 0.9, r * (1.0 - k * 0.72), shade(col, 0.55 + k * 0.75).lerp(Color.WHITE, k * k * 0.35))
+		dot(ci, pos + light_dir * r * k * 0.9, r * (1.0 - k * 0.72), shade(col, 0.55 + k * 0.75).lerp(Color.WHITE, k * k * 0.35))
 
 
 # ---------------------------------------------------------------- the light
@@ -172,7 +205,7 @@ static func light_glow(ci: CanvasItem, pos: Vector2, r: float, t: float) -> void
 	var pulse := (1.0 + sin(t * 2.0)) * 0.5
 	glow(ci, pos, r * (2.1 + 0.15 * pulse), Color(1, 0.88, 0.55, 0.55))
 	glow(ci, pos, r * 1.2, Color(1, 0.98, 0.9, 0.95))
-	ci.draw_circle(pos, r * 0.62, Color(1, 1, 0.97, 1))
+	dot(ci, pos, r * 0.62, Color(1, 1, 0.97, 1))
 
 
 ## The narrator: a soft glowing orb with little eyes and swappable props.
@@ -187,7 +220,7 @@ static func draw_light(ci: CanvasItem, pos: Vector2, r: float, t: float, props :
 	var pulse := (1.0 + sin(t * 2.0)) * 0.5
 	glow(ci, pos, r * (2.2 + 0.2 * pulse), Color(1, 0.86, 0.5, 0.5 * a))
 	glow(ci, pos, r * 1.25, Color(1, 0.98, 0.9, 0.95 * a))
-	ci.draw_circle(pos, r * 0.66, Color(1, 1, 0.96, a))
+	dot(ci, pos, r * 0.66, Color(1, 1, 0.96, a))
 	# eyes
 	var look: Vector2 = props.get("look", Vector2.ZERO)
 	var blink := fmod(t + 0.7, 4.3) < 0.12
@@ -207,7 +240,7 @@ static func draw_light(ci: CanvasItem, pos: Vector2, r: float, t: float, props :
 		ci.draw_line(pos + Vector2(-r * 1.3, -r * 0.12), pos + Vector2(r * 1.3, -r * 0.12), Color("5a4632"), 3.0, true)
 		for sx in [-1.0, 1.0]:
 			var g: Vector2 = pos + Vector2(sx * r * 0.42, -r * 0.12)
-			ci.draw_circle(g, r * 0.36, Color(0.47, 0.86, 1, 0.55))
+			dot(ci, g, r * 0.36, Color(0.47, 0.86, 1, 0.55))
 			ellipse_line(ci, g, r * 0.36, r * 0.36, Color("3b2e22"), 3.0)
 	if props.get("glasses", false):
 		# round reading glasses: tinted lenses, thick frames, bridge, arms and a glint
@@ -215,7 +248,7 @@ static func draw_light(ci: CanvasItem, pos: Vector2, r: float, t: float, props :
 		var lr := r * 0.25
 		for sx in [-1.0, 1.0]:
 			var g: Vector2 = pos + Vector2(sx * r * 0.3, -r * 0.08)
-			ci.draw_circle(g, lr, Color(0.8, 0.92, 1, 0.28 * a))
+			dot(ci, g, lr, Color(0.8, 0.92, 1, 0.28 * a))
 			ellipse_line(ci, g, lr, lr, frame, maxf(2.0, r * 0.08))
 			ci.draw_arc(g, lr * 0.62, PI * 1.1, PI * 1.45, 8, Color(1, 1, 1, 0.8 * a), maxf(1.0, r * 0.04), true)
 			ci.draw_line(g + Vector2(sx * lr, -lr * 0.25), pos + Vector2(sx * r * 0.82, -r * 0.2), frame, maxf(1.5, r * 0.06), true)
@@ -243,10 +276,10 @@ static func draw_light(ci: CanvasItem, pos: Vector2, r: float, t: float, props :
 		for i in 3:
 			var y0 := -hh * 0.1 + i * hh * 0.14
 			ci.draw_line(bc + Vector2(w * 0.22, y0), bc + Vector2(w * (0.78 - i * 0.12), y0 + hh * 0.03), gold, 1.2)
-		ci.draw_circle(bc + Vector2(w * 0.5, -hh * 0.24), r * 0.08, gold)
+		dot(ci, bc + Vector2(w * 0.5, -hh * 0.24), r * 0.08, gold)
 	if props.get("mic", false):
 		ci.draw_line(pos + Vector2(r * 1.2, r * 1.3), pos + Vector2(r * 0.55, r * 0.3), Color("333333"), 5.0, true)
-		ci.draw_circle(pos + Vector2(r * 0.45, r * 0.12), r * 0.5, Color("8a9099"))
+		dot(ci, pos + Vector2(r * 0.45, r * 0.12), r * 0.5, Color("8a9099"))
 		ellipse_line(ci, pos + Vector2(r * 0.45, r * 0.12), r * 0.5, r * 0.5, Color("5c626b"), 1.5)
 		for i in 3:
 			var p := fmod(t * 0.8 + i / 3.0, 1.0)
@@ -268,7 +301,7 @@ static func draw_light(ci: CanvasItem, pos: Vector2, r: float, t: float, props :
 		ci.draw_colored_polygon(ellipse_pts(pos + Vector2(0, -r * 0.2), r * 0.95, r * 0.95, 0, 16, PI * 1.05, PI * 1.95), Color("6b4a2e"))
 		for sx in [-1.0, 1.0]:
 			var g: Vector2 = pos + Vector2(sx * r * 0.42, -r * 0.45)
-			ci.draw_circle(g, r * 0.3, Color(0.55, 0.86, 1, 0.7))
+			dot(ci, g, r * 0.3, Color(0.55, 0.86, 1, 0.7))
 			ellipse_line(ci, g, r * 0.3, r * 0.3, Color("3b2e22"), 3.0)
 		var scarf := quad(pos + Vector2(r * 0.6, r * 0.7), pos + Vector2(r * 1.8, r * 0.6 + sin(t * 8.0) * 6.0), pos + Vector2(r * 2.6, r * 0.9 + sin(t * 8.0 + 1.0) * 8.0))
 		ci.draw_polyline(scarf, Color("e8e2d0"), 6.0, true)
@@ -276,7 +309,7 @@ static func draw_light(ci: CanvasItem, pos: Vector2, r: float, t: float, props :
 		var bx := pos.x + r * 1.1
 		var by := pos.y + r * 0.6
 		for i in 6:
-			ci.draw_circle(Vector2(bx - 8 + i * 3.5, by - 2 - (i % 2) * 3), 4.0, Color.WHITE)
+			dot(ci, Vector2(bx - 8 + i * 3.5, by - 2 - (i % 2) * 3), 4.0, Color.WHITE)
 		ci.draw_colored_polygon(PackedVector2Array([Vector2(bx - 12, by), Vector2(bx + 12, by), Vector2(bx + 9, by + 20), Vector2(bx - 9, by + 20)]), Color("d64535"))
 		ci.draw_rect(Rect2(bx - 3, by, 4, 20), Color.WHITE)
 	if props.get("mailcap", false):
@@ -291,7 +324,7 @@ static func draw_light(ci: CanvasItem, pos: Vector2, r: float, t: float, props :
 		ci.draw_rect(Rect2(pos.x + r, pos.y - 4, 6, 10), Color("333333"))
 		ci.draw_polyline(quad(pos + Vector2(-r - 3, 6), pos + Vector2(-r, r), pos + Vector2(-4, r - 2)), Color("333333"), 2.0, true)
 	if props.get("helmet", false):
-		ci.draw_circle(pos, r * 1.35, Color(0.78, 0.9, 1, 0.12))
+		dot(ci, pos, r * 1.35, Color(0.78, 0.9, 1, 0.12))
 		ellipse_line(ci, pos, r * 1.35, r * 1.35, Color(0.78, 0.9, 1, 0.8), 2.0)
 	ci.draw_set_transform_matrix(cam)
 
@@ -323,7 +356,7 @@ static func draw_recliner(ci: CanvasItem, pos: Vector2, k: float, t := 0.0) -> v
 	round_rect(ci, Rect2(-12, -60, 26, 64), 11, main)
 	round_rect(ci, Rect2(-7, -53, 16, 50), 8, lite)
 	for by in [-42.0, -28.0, -14.0]:
-		ci.draw_circle(Vector2(1, by), 1.8, deep)
+		dot(ci, Vector2(1, by), 1.8, deep)
 	round_rect(ci, Rect2(-10, -70, 26, 14), 7, Color("e8d8f0", a))
 	ci.draw_line(Vector2(-6, -63), Vector2(12, -63), Color(0.6, 0.5, 0.7, 0.5 * a), 1.0)
 	# a blanket draped over the back
@@ -337,18 +370,18 @@ static func draw_recliner(ci: CanvasItem, pos: Vector2, k: float, t := 0.0) -> v
 	ci.draw_line(pos + Vector2(-30, 14), pos + Vector2(26, 14), deep, 2.0)
 	# rolled armrest at the front with a cup holder and a steaming mug
 	round_rect(ci, Rect2(pos + Vector2(-30, -22), Vector2(48, 12)), 6, deep)
-	ci.draw_circle(pos + Vector2(18, -16), 7, main)
-	ci.draw_circle(pos + Vector2(18, -16), 3, lite)
+	dot(ci, pos + Vector2(18, -16), 7, main)
+	dot(ci, pos + Vector2(18, -16), 3, lite)
 	ci.draw_rect(Rect2(pos + Vector2(13, -28), Vector2(10, 11)), Color("f2eee2", a))
 	ci.draw_rect(Rect2(pos + Vector2(14, -27), Vector2(8, 2)), Color("6a3a20", a))
 	ci.draw_arc(pos + Vector2(24, -23), 3, -PI / 2, PI / 2, 8, Color("f2eee2", a), 1.5)
 	for s2 in 2:
 		var f := fmod(t * 0.5 + s2 * 0.5, 1.0)
 		var sp := pos + Vector2(18 + sin(f * 6.0 + s2) * 2, -31 - f * 14)
-		ci.draw_circle(sp, 1.5 + f * 2, Color(0.95, 0.92, 0.85, 0.5 * (1 - f) * a))
+		dot(ci, sp, 1.5 + f * 2, Color(0.95, 0.92, 0.85, 0.5 * (1 - f) * a))
 	# side lever
 	ci.draw_line(pos + Vector2(10, 8), pos + Vector2(4 + 8 * e, -2), Color("b8913a", a), 2.0)
-	ci.draw_circle(pos + Vector2(4 + 8 * e, -2), 2.5, Color("d8b04a", a))
+	dot(ci, pos + Vector2(4 + 8 * e, -2), 2.5, Color("d8b04a", a))
 
 
 # ---------------------------------------------------------------- Carl
@@ -490,7 +523,7 @@ static func _draw_limb(ci: CanvasItem, body: Transform2D, q: Dictionary, w: floa
 			ci.draw_set_transform_matrix(xf * Transform2D(w * 0.18, Vector2.ZERO))
 			var foot := Vector2(42 * k, -2 + w * 3)
 			ci.draw_polyline(PackedVector2Array([Vector2(-6, 0), Vector2(22 * k, 4), foot]), dark, 9.0, true)
-			ci.draw_circle(Vector2(22 * k, 4), 4.5, dark)
+			dot(ci, Vector2(22 * k, 4), 4.5, dark)
 			ellipse(ci, foot + Vector2(2, 0), 5, 9, dark)
 		"arm":
 			ci.draw_set_transform_matrix(xf * Transform2D(-0.4 + w * 0.25, Vector2.ZERO))
@@ -517,7 +550,7 @@ static func _draw_limb(ci: CanvasItem, body: Transform2D, q: Dictionary, w: floa
 				ci.draw_line(Vector2(4 + i * 7, -7 + i), Vector2(4 + i * 7, 6 - i * 1.8), Color(0.8, 0.75, 0.61, alpha), 1.5)
 		"antenna":
 			ci.draw_polyline(quad(Vector2(-4, 0), Vector2(20, w * 10), Vector2(38, w * 6)), Color(0.2, 0.2, 0.2, alpha), 2.5, true)
-			ci.draw_circle(Vector2(40, w * 6), 5, Color(1, 0.36, 0.36, alpha))
+			dot(ci, Vector2(40, w * 6), 5, Color(1, 0.36, 0.36, alpha))
 			glow(ci, Vector2(40, w * 6), 12, Color(1, 0.4, 0.4, 0.4 * alpha))
 		"wing":
 			var f := 0.7 + 0.3 * sin(t * 9.0 + q.get("ph", 0.0))
@@ -552,8 +585,8 @@ static func _draw_face(ci: CanvasItem, body: Transform2D, q: Dictionary, t: floa
 			var look: Vector2 = opts.get("look", Vector2.ZERO)
 			var d := look.limit_length(1.0) * 4.0
 			var pupil := Color(1, 0.81, 0.35, alpha) if gl > 0.5 else Color(0.07, 0.07, 0.07, alpha)
-			ci.draw_circle(d, 5, pupil)
-			ci.draw_circle(d + Vector2(-2, -2), 1.6, Color(1, 1, 1, alpha))
+			dot(ci, d, 5, pupil)
+			dot(ci, d + Vector2(-2, -2), 1.6, Color(1, 1, 1, alpha))
 			if gl > 0.5:
 				glow(ci, d, 14, Color(1, 0.9, 0.5, 0.6 * alpha))
 	else:

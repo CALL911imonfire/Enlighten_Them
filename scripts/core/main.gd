@@ -37,6 +37,10 @@ func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		if str(a).begins_with("--peek="):
 			add_child(load("res://tools/peek.gd").new())
+	if "--bench" in OS.get_cmdline_user_args():
+		Game.autotest = true   # keeps the save file untouched and the music quiet
+		add_child(load("res://tools/bench.gd").new())
+		return
 	Game.start(arg)
 
 

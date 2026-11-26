@@ -319,8 +319,8 @@ func _land(x: Vector2, rx: float, ry: float, k: float) -> void:
 	# forests
 	for f in [[-0.5, 0.0], [-0.46, 0.05], [-0.4, -0.02], [0.0, -0.4], [0.05, -0.36], [0.1, -0.42], [0.38, 0.22], [0.42, 0.18], [-0.1, 0.32], [-0.05, 0.28]]:
 		var fp: Vector2 = P.call(f[0], f[1])
-		draw_circle(fp, 4.5 * u, Color("2e7d32"))
-		draw_circle(fp + Vector2(-1, -1.5) * u, 2.2 * u, Color("43a047"))
+		dot(fp, 4.5 * u, Color("2e7d32"))
+		dot(fp + Vector2(-1, -1.5) * u, 2.2 * u, Color("43a047"))
 	# mountain ranges with snow caps
 	for m in [[-0.3, -0.25, 1.0], [-0.24, -0.27, 0.8], [-0.18, -0.24, 0.9], [0.28, -0.02, 1.0], [0.33, 0.0, 0.75], [-0.02, 0.18, 0.7]]:
 		var mp: Vector2 = P.call(m[0], m[1])
@@ -435,7 +435,7 @@ func _draw_earth() -> void:
 			draw_set_transform_matrix(cam * Transform2D(ang, pp))
 			draw_rect(Rect2(-w / 2, -h / 2, w, h), Color("e9cfa3"))
 			draw_set_transform_matrix(cam)
-		draw_circle(pp, h * 0.35, Color(0.47, 0.31, 0.16, 0.5))
+		dot(pp, h * 0.35, Color(0.47, 0.31, 0.16, 0.5))
 	if k > 0.3:
 		# night side shadow and atmosphere rim
 		Art.ellipse_line(self, x, rx, ry, Color(0.6, 0.85, 1, 0.35 * k), 4.0)
@@ -464,7 +464,7 @@ func _draw_pump() -> void:
 		hose.append(p0.bezier_interpolate(c1, c2, nozzle, k))
 	draw_polyline(hose, Color("2b2b2b"), 9.0, true)
 	draw_polyline(hose, Color("444444"), 4.0, true)
-	draw_circle(nozzle, 8, Color("d9d9d9"))
+	dot(nozzle, 8, Color("d9d9d9"))
 	if phase == "hose" and nozzle_mode == "rest" and not hold and grab == "":
 		draw_arc(nozzle, 16, 0, TAU, 24, Color(1, 0.82, 0.25, 0.5 + 0.4 * sin(t * 5.0)), 2.5, true)
 	draw_rect(Rect2(x - 4, hy, 8, PUMP_TOP - hy + 10), Color("9aa3ad"))
@@ -480,8 +480,8 @@ func _draw_pump() -> void:
 	draw_rect(Rect2(x - 30, PUMP_BOTTOM - 6, 60, 8), Color("3a3a3a"))
 	var g := Vector2(x, PUMP_TOP + 60)
 	var gr := 24.0
-	draw_circle(g, gr + 3, Color("555555"))
-	draw_circle(g, gr, Color("f4efe2"))
+	dot(g, gr + 3, Color("555555"))
+	dot(g, gr, Color("f4efe2"))
 	var a0 := PI * 0.8
 	var redstart := PI * (0.8 + 1.4 / 1.15)
 	draw_arc(g, gr - 6, a0, PI * 1.75, 16, Color("5bc27a"), 6.0)
@@ -489,7 +489,7 @@ func _draw_pump() -> void:
 	draw_arc(g, gr - 6, redstart, PI * 2.2, 8, Color("e0412f"), 6.0)
 	var na := a0 + minf(1.15, pressure) / 1.15 * PI * 1.4 + (sin(t * 50.0) * 0.08 if over_t > 0 else 0.0)
 	draw_line(g, g + Vector2(cos(na), sin(na)) * (gr - 4), Color("222222"), 2.5, true)
-	draw_circle(g, 3, Color("222222"))
+	dot(g, 3, Color("222222"))
 	if phase == "pump":
 		txt(Vector2(300, 625), "Drag the handle, click the pump, or press Space", 14, Color("a39fb5"))
 		draw_rect(Rect2(60, 560, 280, 10), Color(1, 1, 1, 0.12))

@@ -618,13 +618,48 @@ func _draw_tile(k: Dictionary) -> void:
 		col = Color.from_hsv(hue + k.shade * 0.3, 0.45, 0.48 + k.shade * 2.5)
 	col.a = a
 	var pts := _hex_pts(q, s)
-	draw_colored_polygon(pts, col)
+	var n := _tpts.size()
+	_tpts.append_array(pts)
+	for i in pts.size():
+		_tcols.append(col)
+	for i in range(1, pts.size() - 1):
+		_tidx.append_array(PackedInt32Array([n, n + i, n + i + 1]))
 	# a little relief: lighter top edge, darker bottom
-	draw_polyline(PackedVector2Array([pts[3], pts[4], pts[5]]), Color(1, 1, 1, 0.12 * a), 1.5)
-	draw_polyline(PackedVector2Array([pts[0], pts[1], pts[2]]), Color(0, 0, 0, 0.18 * a), 1.5)
+	var hi := Color(1, 1, 1, 0.12 * a)
+	var lo := Color(0, 0, 0, 0.18 * a)
+	_lines.append_array(PackedVector2Array([pts[3], pts[4], pts[4], pts[5], pts[0], pts[1], pts[1], pts[2]]))
+	_lcols.append_array(PackedColorArray([hi, hi, lo, lo]))
 	if k.k == "#" and k.alive:
-		draw_line(q + Vector2(-6, -4), q + Vector2(2, 2), Color(0, 0, 0, 0.25), 1.0)
-		draw_line(q + Vector2(2, 2), q + Vector2(5, 7), Color(0, 0, 0, 0.25), 1.0)
+		var cr := Color(0, 0, 0, 0.25)
+		_cracks.append_array(PackedVector2Array([q + Vector2(-6, -4), q + Vector2(2, 2), q + Vector2(2, 2), q + Vector2(5, 7)]))
+		_ccols.append_array(PackedColorArray([cr, cr]))
+
+
+## Tiles are gathered by _draw_tile() and drawn in a few big batches, because a few
+## hundred separate hexes and edge lines every frame are slow (above all on the web).
+var _tpts := PackedVector2Array()
+var _tcols := PackedColorArray()
+var _tidx := PackedInt32Array()
+var _lines := PackedVector2Array()
+var _lcols := PackedColorArray()
+var _cracks := PackedVector2Array()
+var _ccols := PackedColorArray()
+
+
+func _flush_tiles() -> void:
+	if _tidx.size() > 0:
+		RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), _tidx, _tpts, _tcols)
+	if _lines.size() > 0:
+		draw_multiline_colors(_lines, _lcols, 1.5)
+	if _cracks.size() > 0:
+		draw_multiline_colors(_cracks, _ccols, 1.0)
+	_tpts.clear()
+	_tcols.clear()
+	_tidx.clear()
+	_lines.clear()
+	_lcols.clear()
+	_cracks.clear()
+	_ccols.clear()
 
 
 func _draw_paths() -> void:
@@ -638,8 +673,8 @@ func _draw_paths() -> void:
 		for i in range(1, pts.size()):
 			if pts[i].cut and pts[i - 1].cut:
 				draw_line(pts[i - 1].p, pts[i].p, Color("2a1a10"), 6.0, true)
-		draw_circle(pts[0].p, 4, Color("ffe9a8"))
-		draw_circle(pts[-1].p, 4, Color("ffe9a8"))
+		dot(pts[0].p, 4, Color("ffe9a8"))
+		dot(pts[-1].p, 4, Color("ffe9a8"))
 
 
 func _draw_switch() -> void:
@@ -654,7 +689,7 @@ func _draw_switch() -> void:
 	txt(Vector2(x, by + 26), "DURING PANGAEA PUZZLE", 9, Color("222222"))
 	var on := sw == "on"
 	Art.round_rect(self, Rect2(x - 26, by + 34, 52, 26), 13, Color("d64535") if on else Color("6b7280"))
-	draw_circle(Vector2(x + 13 if on else x - 13, by + 47), 10, Color.WHITE)
+	dot(Vector2(x + 13 if on else x - 13, by + 47), 10, Color.WHITE)
 	txt(Vector2(x - 12 if on else x + 12, by + 51), "ON" if on else "OFF", 10, Color("222222"))
 
 
@@ -698,9 +733,10 @@ func paint() -> void:
 		draw_arc(r.p, maxf(1, r.r - 8), 0, TAU, 48, Color(0.47, 0.75, 1, a * 0.6), 10 * a + 0.1, true)
 	for k in tiles:
 		_draw_tile(k)
+	_flush_tiles()
 	if not fish_on:
 		for s in scorch:
-			draw_circle(s.p, 7, Color(0.16, 0.08, 0.04, 0.75))
+			dot(s.p, 7, Color(0.16, 0.08, 0.04, 0.75))
 			for i in 4:
 				var a: float = s.s + i * 1.6
 				draw_line(s.p, s.p + Vector2(cos(a), sin(a)) * 13, Color(0.16, 0.08, 0.04, 0.75), 1.5)

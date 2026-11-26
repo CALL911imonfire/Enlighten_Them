@@ -522,7 +522,7 @@ func paint() -> void:
 		var s = _find(sel)
 		if s != null and Art.is_face(s.type):
 			var h := _handle_pt(s) + Vector2(0, sin(t * 1.5) * 3)
-			draw_circle(h, 7, Color("ffe9a8"))
+			dot(h, 7, Color("ffe9a8"))
 			draw_arc(h, 7, 0, TAU, 16, Color("1b1020"), 2.0, true)
 	if phase == "end" or phase == "walk":
 		Art.text(self, Vector2(CX, 110), "Carl joined the team.", 26, Color("fffbe8"), 0, Art.serif())
@@ -532,7 +532,7 @@ func paint() -> void:
 		draw_rect(SWR, Color("ffcf5a") if SWR.has_point(mouse()) else Color("333333"), false, 2.0)
 		txt(SWR.position + Vector2(10, 29), "PUNS", 12, Color("222222"), -1)
 		Art.round_rect(self, Rect2(SWR.position + Vector2(56, 12), Vector2(52, 24)), 12, Color("3fae5a") if on else Color("6b7280"))
-		draw_circle(SWR.position + Vector2(96 if on else 68, 24), 9, Color.WHITE)
+		dot(SWR.position + Vector2(96 if on else 68, 24), 9, Color.WHITE)
 	if drag_off:
 		txt(mouse() + Vector2(0, -26), "Let go to remove", 14, Color(1, 0.35, 0.35, 0.95), 0, 3)
 	var ending := phase == "end" or phase == "walk"

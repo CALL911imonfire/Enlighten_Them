@@ -416,7 +416,7 @@ func _draw_carl() -> void:
 			_draw_car(Vector2(x, yb), 84.0, Color("d64535"), true)
 			for i in 3:
 				var p := fmod(t * 3 + i / 3.0, 1.0)
-				draw_circle(Vector2(x - 46 - p * 30, yb - 10 - p * 6), 3 + p * 6, Color(0.7, 0.7, 0.7, 0.35 * (1 - p)))
+				dot(Vector2(x - 46 - p * 30, yb - 10 - p * 6), 3 + p * 6, Color(0.7, 0.7, 0.7, 0.35 * (1 - p)))
 		_:
 			var tilt := clampf(vy / 700.0, -0.5, 0.6)
 			draw_set_transform_matrix(cam * Transform2D(tilt, Vector2(x, y)))
@@ -431,7 +431,7 @@ func _draw_carl() -> void:
 				draw_line(Vector2(sx, -26), Vector2(sx, 6), Color("8a6a20"), 2.0)
 			var pr := sin(t * 60.0) * 14
 			draw_line(Vector2(36, -pr), Vector2(36, pr), Color("cccccc"), 3.0)
-			draw_circle(Vector2(35, 0), 3, Color("555555"))
+			dot(Vector2(35, 0), 3, Color("555555"))
 			Art.cam = cam
 			draw_set_transform_matrix(cam)
 
@@ -446,27 +446,53 @@ func _hh(i: int, k := 0) -> float:
 	return v - floor(v)
 
 
+## Grass blades inside _blades() and _clumps() are collected here and drawn in one
+## batch, because hundreds of separate little polygons are slow (above all on the web).
+var _batching := false
+var _bpts := PackedVector2Array()
+var _bcols := PackedColorArray()
+var _bidx := PackedInt32Array()
+
+
 func _blade(b: Vector2, h: float, lean: float, col: Color, w := 1.4) -> void:
-	draw_colored_polygon(PackedVector2Array([b + Vector2(-w, 1), b + Vector2(lean * 0.35 - w * 0.55, -h * 0.5), b + Vector2(lean, -h),
-		b + Vector2(lean * 0.35 + w * 0.55, -h * 0.5), b + Vector2(w, 1)]), col)
+	var n := _bpts.size()
+	_bpts.append_array(PackedVector2Array([b + Vector2(-w, 1), b + Vector2(lean * 0.35 - w * 0.55, -h * 0.5), b + Vector2(lean, -h),
+		b + Vector2(lean * 0.35 + w * 0.55, -h * 0.5), b + Vector2(w, 1)]))
+	for k in 5:
+		_bcols.append(col)
+	_bidx.append_array(PackedInt32Array([n, n + 1, n + 2, n, n + 2, n + 3, n, n + 3, n + 4]))
+	if not _batching:
+		_flush_blades()
+
+
+func _flush_blades() -> void:
+	_batching = false
+	if _bidx.size() > 0:
+		RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), _bidx, _bpts, _bcols)
+	_bpts.clear()
+	_bcols.clear()
+	_bidx.clear()
 
 
 func _blades(y: float, sp: float, hmin: float, hmax: float, c1: Color, c2: Color, seed: int, xl: float) -> void:
 	## A row of single grass blades along y, scrolling with the road.
 	var i0 := int(floor((dist - 160.0) / sp))
 	var i1 := int(floor((dist + VW + 240.0) / sp)) + 1
+	_batching = true
 	for i in range(i0, i1):
 		var sx := i * sp + _hh(i, seed) * sp * 0.6 - dist
 		if sx < xl:
 			continue
 		var h := lerpf(hmin, hmax, _hh(i, seed + 1))
 		_blade(Vector2(sx, y), h, (_hh(i, seed + 2) - 0.5) * h * 0.7, c1.lerp(c2, _hh(i, seed + 3)))
+	_flush_blades()
 
 
 func _clumps(y: float, sp: float, hmin: float, hmax: float, c1: Color, c2: Color, seed: int, xl: float, keep := 0.55) -> void:
 	## Fanned tufts of grass, like little bunches.
 	var i0 := int(floor((dist - 160.0) / sp))
 	var i1 := int(floor((dist + VW + 240.0) / sp)) + 1
+	_batching = true
 	for i in range(i0, i1):
 		if _hh(i, seed) > keep:
 			continue
@@ -478,6 +504,7 @@ func _clumps(y: float, sp: float, hmin: float, hmax: float, c1: Color, c2: Color
 			var f := (b - 3.0) / 3.0
 			var bh := h * (1.0 - absf(f) * 0.45) * (0.8 + 0.4 * _hh(i * 7 + b, seed + 3))
 			_blade(Vector2(sx + f * 4.0, y), bh, f * h * 0.6, c1.lerp(c2, _hh(i * 7 + b, seed + 4)), 1.6)
+	_flush_blades()
 
 
 func _pebbles(y0: float, y1: float, sp: float, c1: Color, c2: Color, seed: int, xl: float) -> void:
@@ -525,8 +552,8 @@ func _draw_backdrop() -> void:
 				draw_line(Vector2(x + 7, y - 12), Vector2(x, y - 12), cc, 3.5)
 			elif i % 2 == 0:
 				draw_line(Vector2(x, y), Vector2(x, y - 12), Color("6a4a2a"), 3.0)
-				draw_circle(Vector2(x, y - 18), 9, Color("3f8a3a"))
-				draw_circle(Vector2(x - 4, y - 21), 5, Color("56a34a"))
+				dot(Vector2(x, y - 18), 9, Color("3f8a3a"))
+				dot(Vector2(x - 4, y - 21), 5, Color("56a34a"))
 	elif st == 3:
 		for i in 18:
 			var x := fmod(i * 70 - dist * 0.25 + 4000.0, 1260.0) - 230.0
@@ -561,8 +588,8 @@ func _draw_ground() -> void:
 				draw_line(Vector2(fx, GROUND), Vector2(fx + 1, GROUND - fh), Color("3f7d33"), 1.2)
 				var fc: Color = [Color("ffd84a"), Color("ff8fb5"), Color("ffffff"), Color("b58aff")][int(_hh(i, 24) * 4) % 4]
 				for k in 5:
-					draw_circle(Vector2(fx + 1, GROUND - fh) + Vector2.from_angle(k * TAU / 5) * 2.2, 1.6, fc)
-				draw_circle(Vector2(fx + 1, GROUND - fh), 1.3, Color("e7a83a"))
+					dot(Vector2(fx + 1, GROUND - fh) + Vector2.from_angle(k * TAU / 5) * 2.2, 1.6, fc)
+				dot(Vector2(fx + 1, GROUND - fh), 1.3, Color("e7a83a"))
 			_blades(GROUND + 18, 4, 4, 9, Color("5aa34a"), Color("82cf62"), 7, xl)
 			_clumps(GROUND + 46, 90, 10, 18, Color("4f9a3e"), Color("8bd36a"), 11, xl)
 			_clumps(GROUND + 66, 130, 12, 22, Color("3f8a3a"), Color("76c45a"), 13, xl)
@@ -607,7 +634,7 @@ func _draw_ground() -> void:
 					continue
 				var bx := i * 150.0 + _hh(i, 42) * 80 - dist
 				for k in 4:
-					draw_circle(Vector2(bx + (k - 1.5) * 6, GROUND - 4 - (k % 2) * 4), 6 + _hh(i * 4 + k, 43) * 2, Color("8a9a6a").lerp(Color("a9b88a"), _hh(i * 4 + k, 44)))
+					dot(Vector2(bx + (k - 1.5) * 6, GROUND - 4 - (k % 2) * 4), 6 + _hh(i * 4 + k, 43) * 2, Color("8a9a6a").lerp(Color("a9b88a"), _hh(i * 4 + k, 44)))
 			_blades(GROUND + 1, 9, 4, 11, Color("b3a64e"), Color("dccb72"), 25, xl)
 			_clumps(GROUND + 66, 70, 10, 18, Color("9a8a3e"), Color("d4c26a"), 27, xl)
 		3:
@@ -623,7 +650,7 @@ func _draw_ground() -> void:
 				Art.round_rect(self, Rect2(lx + 10, GROUND - 168, 14, 6), 3, Color("ffe9a8"))
 				if i % 2 == 0:
 					draw_rect(Rect2(lx + 90, GROUND - 118, 4, 28), Color("6b5a3a"))
-					draw_circle(Vector2(lx + 92, GROUND - 126), 12, Color("3f8a3a"))
+					dot(Vector2(lx + 92, GROUND - 126), 12, Color("3f8a3a"))
 			draw_rect(Rect2(xl, GROUND - 80, big, 94), Color("4a4d55"))
 			draw_rect(Rect2(xl, GROUND - 80, big, 3), Color("9a9da6"))
 			draw_rect(Rect2(xl, GROUND + 9, big, 2), Color("e8e8e8"))
@@ -696,7 +723,7 @@ func _draw_shore() -> void:
 	draw_colored_polygon(wet, Color("c9b07a"))
 	for i in 7:
 		var x := xm + 2 + i * 3.0
-		draw_circle(Vector2(ox + x, _coast(x) + 4 + (i % 3) * 3), 1.4, Color("f4e6c0") if i % 2 else Color("b89e6a"))
+		dot(Vector2(ox + x, _coast(x) + 4 + (i % 3) * 3), 1.4, Color("f4e6c0") if i % 2 else Color("b89e6a"))
 	# beach rocks and a shell
 	Art.ellipse(self, Vector2(ox + xm + 10, _coast(xm + 10) - 1), 6, 3.5, Color("8a857c"))
 	Art.ellipse(self, Vector2(ox + xm + 9, _coast(xm + 10) - 2.5), 3, 1.4, Color(1, 1, 1, 0.25))
@@ -772,8 +799,8 @@ func _draw_horse(f: Vector2) -> void:
 	draw_polyline(Art.quad(b + Vector2(-30, -4), b + Vector2(-46, 4 + sway), b + Vector2(-40, 22 + sway)), mane, 3.0, true)
 	# barrel, chest and rump
 	Art.ellipse(self, b, 32, 14, coat)
-	draw_circle(b + Vector2(22, -2), 13, coat)
-	draw_circle(b + Vector2(-22, -2), 13, coat)
+	dot(b + Vector2(22, -2), 13, coat)
+	dot(b + Vector2(-22, -2), 13, coat)
 	Art.ellipse(self, b + Vector2(0, -6), 24, 5, Color(1, 1, 1, 0.12))
 	# neck and head
 	var nb := b + Vector2(24, -6)
@@ -782,10 +809,10 @@ func _draw_horse(f: Vector2) -> void:
 	draw_set_transform_matrix(cam * Transform2D(0.55, head))
 	Art.ellipse(self, Vector2(4, 0), 13, 7, coat)
 	Art.ellipse(self, Vector2(14, 1), 6, 5.5, Art.shade(coat, 0.85))
-	draw_circle(Vector2(17, 2), 1.3, Color("222222"))
+	dot(Vector2(17, 2), 1.3, Color("222222"))
 	draw_set_transform_matrix(cam)
-	draw_circle(head + Vector2(0, -2), 2.2, Color("111111"))
-	draw_circle(head + Vector2(-0.6, -2.6), 0.7, Color.WHITE)
+	dot(head + Vector2(0, -2), 2.2, Color("111111"))
+	dot(head + Vector2(-0.6, -2.6), 0.7, Color.WHITE)
 	# ears
 	draw_colored_polygon(PackedVector2Array([head + Vector2(-6, -6), head + Vector2(-8, -16), head + Vector2(-1, -7)]), dark)
 	# mane along the neck
@@ -829,9 +856,9 @@ func _draw_car(base: Vector2, w: float, body: Color, rider := false) -> void:
 	# wheels in their arches
 	for wx in [-w * 0.3, w * 0.3]:
 		var wc := Vector2(x + wx, y - 6)
-		draw_circle(Vector2(x + wx, y - 8), 10.5, dark)
-		draw_circle(wc, 8, Color("1d1d22"))
-		draw_circle(wc, 4, Color("a9afb8"))
+		dot(Vector2(x + wx, y - 8), 10.5, dark)
+		dot(wc, 8, Color("1d1d22"))
+		dot(wc, 4, Color("a9afb8"))
 		for k in 3:
 			var aa := t * 14.0 + k * TAU / 3.0
 			draw_line(wc, wc + Vector2(cos(aa), sin(aa)) * 3.6, Color("6b7079"), 1.2)
@@ -859,7 +886,7 @@ func _draw_obs() -> void:
 				var r := hh / 2
 				Art.ellipse(self, Vector2(sx + w / 2, GROUND + 1), w * 0.55, 3, Color(0, 0, 0, 0.18))
 				draw_rect(Rect2(sx, GROUND - hh, w, hh), Color("7a4e2a"))
-				draw_circle(Vector2(sx, GROUND - r), r, Color("6a4224"))
+				dot(Vector2(sx, GROUND - r), r, Color("6a4224"))
 				for i in 4:
 					var yy: float = GROUND - hh + 3 + i * (hh - 6) / 3.0
 					draw_line(Vector2(sx + 4 + (i % 2) * 6, yy), Vector2(sx + w - 10 - (i % 2) * 8, yy), Color("5a361c"), 1.5)
@@ -882,7 +909,7 @@ func _draw_obs() -> void:
 					draw_rect(Rect2(sx - 14, ry, w + 28, 6), lite)
 					draw_rect(Rect2(sx - 14, ry + 4, w + 28, 2), wood)
 					for nx in [sx - 7, sx + w + 7]:
-						draw_circle(Vector2(nx, ry + 3), 1.2, Color("4a3220"))
+						dot(Vector2(nx, ry + 3), 1.2, Color("4a3220"))
 			"cone":
 				var y: float = LANES[o.lane]
 				var w: float = o.w
@@ -914,16 +941,16 @@ func _draw_obs() -> void:
 				# cloud bank hanging from above
 				draw_rect(Rect2(sx, -300, bw, top + 290), Color("cfd5e0"))
 				for i in 5:
-					draw_circle(Vector2(sx + 4 + i * 13.5, top - 6 + (i % 2) * 4), 12, Color("cfd5e0"))
+					dot(Vector2(sx + 4 + i * 13.5, top - 6 + (i % 2) * 4), 12, Color("cfd5e0"))
 				for i in 4:
-					draw_circle(Vector2(sx + 10 + i * 14, top - 16), 9, Color("e6eaf1"))
+					dot(Vector2(sx + 10 + i * 14, top - 16), 9, Color("e6eaf1"))
 				# skyscraper standing below. Window lights are fixed per building so they never flicker.
 				var seed := int(o.x)
 				draw_rect(Rect2(sx, bot, bw, GROUND - bot), Color("56607a"))
 				draw_rect(Rect2(sx + bw - 10, bot, 10, GROUND - bot), Color("48506a"))
 				draw_rect(Rect2(sx - 3, bot, bw + 6, 6), Color("6c7792"))
 				draw_rect(Rect2(sx + bw * 0.5 - 1, bot - 16, 2, 16), Color("9aa3b8"))
-				draw_circle(Vector2(sx + bw * 0.5, bot - 17), 2.5, Color(1, 0.3, 0.25, 0.6 + 0.4 * sin(t * 4.0)))
+				dot(Vector2(sx + bw * 0.5, bot - 17), 2.5, Color(1, 0.3, 0.25, 0.6 + 0.4 * sin(t * 4.0)))
 				var row := 0
 				var yy := bot + 12
 				while yy < GROUND - 22:
@@ -971,13 +998,13 @@ func _draw_library(sx: float) -> void:
 	# pediment
 	draw_colored_polygon(PackedVector2Array([Vector2(sx - 16, g - 162), Vector2(sx + 95, g - 206), Vector2(sx + 206, g - 162)]), Color("cbbd9c"))
 	draw_colored_polygon(PackedVector2Array([Vector2(sx + 6, g - 166), Vector2(sx + 95, g - 197), Vector2(sx + 184, g - 166)]), Color("ddd1b4"))
-	draw_circle(Vector2(sx + 95, g - 178), 8, Color("cbbd9c"))
+	dot(Vector2(sx + 95, g - 178), 8, Color("cbbd9c"))
 	Art.ellipse(self, Vector2(sx + 95, g - 178), 4, 6, Color("ffe9a8"))
 	# doors (behind the columns)
 	Art.round_rect(self, Rect2(sx + 78, g - 80, 34, 56), 8, Color("5a3d24"))
 	draw_line(Vector2(sx + 95, g - 78), Vector2(sx + 95, g - 24), Color("3e2a18"), 2.0)
-	draw_circle(Vector2(sx + 91, g - 50), 1.5, Color("e7c14a"))
-	draw_circle(Vector2(sx + 99, g - 50), 1.5, Color("e7c14a"))
+	dot(Vector2(sx + 91, g - 50), 1.5, Color("e7c14a"))
+	dot(Vector2(sx + 99, g - 50), 1.5, Color("e7c14a"))
 	# columns with capitals, bases and fluting
 	for i in 6:
 		var cx := sx + 6 + i * 34.0
@@ -994,7 +1021,7 @@ func _draw_library(sx: float) -> void:
 	# lamps
 	for lx in [sx + 66.0, sx + 124.0]:
 		draw_rect(Rect2(lx - 1, g - 70, 2, 10), Color("3a3a3a"))
-		draw_circle(Vector2(lx, g - 72), 3.5, Color("ffe08a"))
+		dot(Vector2(lx, g - 72), 3.5, Color("ffe08a"))
 		Art.glow(self, Vector2(lx, g - 72), 16, Color(1, 0.9, 0.5, 0.35))
 	# a reading banner
 	draw_rect(Rect2(sx + 150, g - 134, 14, 36), Color("7a2a3a"))

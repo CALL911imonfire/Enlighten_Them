@@ -332,7 +332,7 @@ func _draw_body(b: Dictionary, label: bool) -> void:
 	Art.ball(self, x, r, b.col)
 	if b.id == "earth":
 		for c in [[-0.35, -0.2, 0.42], [0.3, 0.3, 0.33], [0.2, -0.45, 0.22]]:
-			draw_circle(x + Vector2(c[0], c[1]) * r, c[2] * r, Color(0.3, 0.68, 0.31, 0.9))
+			dot(x + Vector2(c[0], c[1]) * r, c[2] * r, Color(0.3, 0.68, 0.31, 0.9))
 	elif b.id == "jupiter":
 		for dy in [-0.5, -0.1, 0.3, 0.6]:
 			var w := sqrt(maxf(0.0, 1.0 - dy * dy)) * r
@@ -376,7 +376,7 @@ func paint() -> void:
 			if p.life > 0:
 				var c: Color = p.c
 				c.a = minf(1.0, p.life)
-				draw_circle(p.p, p.s, c)
+				dot(p.p, p.s, c)
 		return
 	draw_rect(big_rect(), Color("07060d"))
 	Art.glow(self, Vector2(120, 520), 380, Color(0.3, 0.2, 0.55, 0.16))

@@ -61,7 +61,9 @@ func _process(dt: float) -> void:
 	dt = minf(dt, 0.05)
 	t += dt
 	shake = maxf(0.0, shake - dt)
+	var t0 := Time.get_ticks_usec()
 	tick(dt)
+	Game.tick_us += Time.get_ticks_usec() - t0
 	queue_redraw()
 
 
@@ -71,7 +73,9 @@ func _draw() -> void:
 		c = Transform2D(0, Vector2((randf() - 0.5) * 16.0 * shake, (randf() - 0.5) * 16.0 * shake)) * c
 	Art.cam = c
 	draw_set_transform_matrix(c)
+	var t0 := Time.get_ticks_usec()
 	paint()
+	Game.paint_us += Time.get_ticks_usec() - t0
 	Art.cam = Transform2D()
 	draw_set_transform_matrix(Transform2D())
 
@@ -109,6 +113,11 @@ func finish(p: Vector2) -> void:
 # ---------------------------------------------------------------- small helpers
 func light(p: Vector2, r: float, props := {}) -> void:
 	Art.draw_light(self, p, r, t, props)
+
+
+## A filled circle (cheaper than draw_circle for small ones; see Art.dot).
+func dot(p: Vector2, r: float, col: Color) -> void:
+	Art.dot(self, p, r, col)
 
 
 func carl(p: Vector2, s: float, opts := {}) -> void:

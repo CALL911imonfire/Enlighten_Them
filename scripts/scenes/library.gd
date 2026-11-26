@@ -536,8 +536,8 @@ func paint() -> void:
 		draw_rect(Rect2(-36, -20, 72, 16), Color("f2eee2"))
 		txt(Vector2(0, -8), "DO NOT WATCH", 9, Color("d64535"))
 		for dx in [-18, 18]:
-			draw_circle(Vector2(dx, 10), 8, Color("555555"))
-			draw_circle(Vector2(dx, 10), 3, Color("222222"))
+			dot(Vector2(dx, 10), 8, Color("555555"))
+			dot(Vector2(dx, 10), 3, Color("222222"))
 		draw_set_transform_matrix(cam)
 	if shh:
 		draw_set_transform_matrix(cam * Transform2D(-0.2, Vector2(560, 300)))
@@ -594,9 +594,9 @@ func _ficus(p: Vector2, s: float) -> void:
 	draw_line(p + Vector2(0, -34 * s), top, Color("6a4a2a"), 4 * s)
 	draw_line(p + Vector2(0, -90 * s), p + Vector2(-26 * s, -120 * s), Color("6a4a2a"), 2.5 * s)
 	for c in [[-26, 10, 22], [24, 6, 24], [0, -14, 28], [-8, 22, 22], [18, 28, 18], [-30, -12, 16]]:
-		draw_circle(top + Vector2(c[0], c[1]) * s, c[2] * s, Color("2f6b2a"))
+		dot(top + Vector2(c[0], c[1]) * s, c[2] * s, Color("2f6b2a"))
 	for c in [[-20, 4, 16], [20, 0, 18], [2, -18, 20], [-4, 18, 14]]:
-		draw_circle(top + Vector2(c[0], c[1]) * s, c[2] * s, Color("3f8a3a"))
+		dot(top + Vector2(c[0], c[1]) * s, c[2] * s, Color("3f8a3a"))
 	for i in 30:
 		var a := float(i) * 2.4
 		var r := (8 + (i * 7) % 34) * s
@@ -612,7 +612,7 @@ func _cactus(p: Vector2, s: float) -> void:
 	draw_rect(Rect2(p + Vector2(-14, -32) * s, Vector2(10, 6) * s), c)
 	for k in 5:
 		draw_line(p + Vector2(-2, -60 + k * 9) * s, p + Vector2(-4, -61 + k * 9) * s, Color("e8f0c8"), 1.0)
-	draw_circle(p + Vector2(0, -66) * s, 3 * s, Color("ff7aa8"))
+	dot(p + Vector2(0, -66) * s, 3 * s, Color("ff7aa8"))
 
 
 func _frame(r: Rect2, kind: String) -> void:
@@ -629,23 +629,23 @@ func _frame(r: Rect2, kind: String) -> void:
 			Art.vgrad(self, r, Color("2a5a7a"), Color("16324a"))
 			Art.ellipse(self, c, r.size.x * 0.26, r.size.y * 0.16, Color("e07a5a"))
 			draw_colored_polygon(PackedVector2Array([c + Vector2(-r.size.x * 0.22, 0), c + Vector2(-r.size.x * 0.4, -r.size.y * 0.12), c + Vector2(-r.size.x * 0.4, r.size.y * 0.12)]), Color("c45a3a"))
-			draw_circle(c + Vector2(r.size.x * 0.14, -3), 2.5, Color.WHITE)
-			draw_circle(c + Vector2(r.size.x * 0.15, -3), 1.2, Color.BLACK)
+			dot(c + Vector2(r.size.x * 0.14, -3), 2.5, Color.WHITE)
+			dot(c + Vector2(r.size.x * 0.15, -3), 1.2, Color.BLACK)
 			Art.ellipse(self, c + Vector2(0, -r.size.y * 0.34), 9, 3, Color("222222"))
 			draw_rect(Rect2(c + Vector2(-5, -r.size.y * 0.42), Vector2(10, 7)), Color("222222"))
 			draw_rect(Rect2(r.position.x + 8, r.end.y - 12, r.size.x - 16, 7), Color("d8c08a"))
 		"sea":
 			Art.vgrad(self, Rect2(r.position, Vector2(r.size.x, r.size.y * 0.55)), Color("f2b77a"), Color("f7dcae"))
-			draw_circle(c + Vector2(r.size.x * 0.18, -r.size.y * 0.02), r.size.y * 0.13, Color("ffe08a"))
+			dot(c + Vector2(r.size.x * 0.18, -r.size.y * 0.02), r.size.y * 0.13, Color("ffe08a"))
 			Art.vgrad(self, Rect2(r.position + Vector2(0, r.size.y * 0.55), Vector2(r.size.x, r.size.y * 0.45)), Color("3a7ab0"), Color("24507a"))
 			draw_colored_polygon(PackedVector2Array([c + Vector2(-r.size.x * 0.2, r.size.y * 0.06), c + Vector2(-r.size.x * 0.1, -r.size.y * 0.3), c + Vector2(-r.size.x * 0.1, r.size.y * 0.06)]), Color("f2eee2"))
 			draw_line(c + Vector2(-r.size.x * 0.22, r.size.y * 0.08), c + Vector2(-r.size.x * 0.02, r.size.y * 0.08), Color("6a3a20"), 3.0)
 		"light":
 			Art.vgrad(self, r, Color("3a3050"), Color("1e1a30"))
 			Art.glow(self, c, r.size.x * 0.5, Color(1, 0.9, 0.6, 0.5))
-			draw_circle(c, r.size.x * 0.17, Color("fff4c8"))
-			draw_circle(c + Vector2(-4, -2), 1.5, Color("2a2030"))
-			draw_circle(c + Vector2(4, -2), 1.5, Color("2a2030"))
+			dot(c, r.size.x * 0.17, Color("fff4c8"))
+			dot(c + Vector2(-4, -2), 1.5, Color("2a2030"))
+			dot(c + Vector2(4, -2), 1.5, Color("2a2030"))
 			draw_rect(Rect2(r.position.x + 6, r.end.y - 14, r.size.x - 12, 9), Color("d8c08a"))
 			txt(Vector2(c.x, r.end.y - 7), "EMPLOYEE OF THE EON", 5, Color("3a2a10"))
 		"hills":
@@ -658,7 +658,7 @@ func _frame(r: Rect2, kind: String) -> void:
 			txt(Vector2(c.x, r.position.y + 14), "DIPLOMA", 8, Color("5a4630"))
 			for k in 3:
 				draw_line(Vector2(r.position.x + 10, r.position.y + 24 + k * 7), Vector2(r.end.x - 10, r.position.y + 24 + k * 7), Color(0, 0, 0, 0.2), 1.0)
-			draw_circle(Vector2(r.end.x - 14, r.end.y - 12), 6, Color("d64535"))
+			dot(Vector2(r.end.x - 14, r.end.y - 12), 6, Color("d64535"))
 
 
 func _window(r: Rect2) -> void:
@@ -667,9 +667,9 @@ func _window(r: Rect2) -> void:
 	Art.round_rect(self, r, r.size.x * 0.5, Color("1a2340"))
 	for i in 14:
 		var sp := Vector2(r.position.x + 8 + (i * 37) % int(r.size.x - 16), r.position.y + 20 + (i * 53) % int(r.size.y * 0.6))
-		draw_circle(sp, 1.0 + (i % 3) * 0.4, Color(1, 1, 0.9, 0.4 + 0.4 * sin(t * 2 + i)))
-	draw_circle(r.position + Vector2(r.size.x * 0.68, 46), 12, Color("f2eed8"))
-	draw_circle(r.position + Vector2(r.size.x * 0.68 + 5, 42), 11, Color("1a2340"))
+		dot(sp, 1.0 + (i % 3) * 0.4, Color(1, 1, 0.9, 0.4 + 0.4 * sin(t * 2 + i)))
+	dot(r.position + Vector2(r.size.x * 0.68, 46), 12, Color("f2eed8"))
+	dot(r.position + Vector2(r.size.x * 0.68 + 5, 42), 11, Color("1a2340"))
 	draw_line(Vector2(r.get_center().x, r.position.y + 2), Vector2(r.get_center().x, r.end.y), Color("5b3a1d"), 4.0)
 	draw_line(Vector2(r.position.x, r.position.y + r.size.y * 0.55), Vector2(r.end.x, r.position.y + r.size.y * 0.55), Color("5b3a1d"), 4.0)
 	draw_rect(Rect2(r.position.x - 12, r.end.y + 4, r.size.x + 24, 8), Color("7a4f2a"))
@@ -698,7 +698,7 @@ func _armchair(p: Vector2) -> void:
 	for sx in [-56.0, 36.0]:
 		Art.round_rect(self, Rect2(p + Vector2(sx, -62), Vector2(20, 48)), 9, Art.shade(c, 1.1))
 	for k in 3:
-		draw_circle(p + Vector2(-24 + k * 24, -78), 2, Color("1e4a3a"))
+		dot(p + Vector2(-24 + k * 24, -78), 2, Color("1e4a3a"))
 	for lx in [-40.0, 40.0]:
 		draw_rect(Rect2(p + Vector2(lx - 3, -14), Vector2(6, 14)), Color("4a2e17"))
 	# an open book left on the seat
@@ -711,8 +711,8 @@ func _clock(p: Vector2) -> void:
 	Art.ellipse(self, p + Vector2(0, 2), 34, 5, Color(0, 0, 0, 0.25))
 	Art.vgrad(self, Rect2(p + Vector2(-w / 2, -230), Vector2(w, 230)), Color("6a3e1e"), Color("4a2a12"))
 	draw_colored_polygon(PackedVector2Array([p + Vector2(-w / 2 - 4, -230), p + Vector2(0, -250), p + Vector2(w / 2 + 4, -230)]), Color("5a3418"))
-	draw_circle(p + Vector2(0, -196), 22, Color("b8913a"))
-	draw_circle(p + Vector2(0, -196), 19, Color("f4efe0"))
+	dot(p + Vector2(0, -196), 22, Color("b8913a"))
+	dot(p + Vector2(0, -196), 19, Color("f4efe0"))
 	for k in 12:
 		var a := k * TAU / 12
 		draw_line(p + Vector2(0, -196) + Vector2.from_angle(a) * 15, p + Vector2(0, -196) + Vector2.from_angle(a) * 18, Color("3a2a10"), 1.0)
@@ -724,7 +724,7 @@ func _clock(p: Vector2) -> void:
 	var top := win.position + Vector2(16, 4)
 	var bob := top + Vector2(sin(sw), cos(sw)) * 88
 	draw_line(top, bob, Color("b8913a"), 2.0)
-	draw_circle(bob, 9, Color("d8b04a"))
+	dot(bob, 9, Color("d8b04a"))
 	draw_rect(win, Color(1, 1, 1, 0.06))
 	draw_rect(Rect2(p + Vector2(-w / 2 - 4, -26), Vector2(w + 8, 26)), Color("5a3418"))
 
@@ -735,14 +735,14 @@ func _globe(p: Vector2) -> void:
 		draw_line(p + Vector2(lx, 0), p + Vector2(0, -54), Color("5a3418"), 3.0)
 	var c := p + Vector2(0, -86)
 	draw_arc(c, 34, PI * 0.6, PI * 2.2, 24, Color("b8913a"), 3.0)
-	draw_circle(c, 30, Color("3a7ab0"))
+	dot(c, 30, Color("3a7ab0"))
 	var spin := fmod(t * 6.0, 60.0)
 	for k in 3:
 		var x := fmod(spin + k * 22.0, 60.0) - 30
 		var ww := 12 * sqrt(maxf(0.0, 1.0 - pow(x / 30.0, 2)))
 		if ww > 1:
 			Art.ellipse(self, c + Vector2(x, -10 + k * 9), ww, 7, Color("6fb35c"))
-	draw_circle(c + Vector2(-10, -10), 6, Color(1, 1, 1, 0.18))
+	dot(c + Vector2(-10, -10), 6, Color(1, 1, 1, 0.18))
 
 
 func _side_table(p: Vector2) -> void:
@@ -780,9 +780,9 @@ func _poster(r: Rect2) -> void:
 	draw_colored_polygon(PackedVector2Array([c + Vector2(-26, -8), c + Vector2(0, -2), c + Vector2(26, -8), c + Vector2(26, 12), c + Vector2(0, 18), c + Vector2(-26, 12)]), Color("f4efe0"))
 	draw_line(c + Vector2(0, -2), c + Vector2(0, 18), Color("8a7a5a"), 1.5)
 	for k in 3:
-		draw_circle(c + Vector2(-16 + k * 16, -20 - (k % 2) * 8), 2.5, Color.WHITE)
+		dot(c + Vector2(-16 + k * 16, -20 - (k % 2) * 8), 2.5, Color.WHITE)
 	for k in 4:
-		draw_circle(r.position + Vector2(4 + (k % 2) * (r.size.x - 8), 4 + (k / 2) * (r.size.y - 8)), 2.5, Color("c9c9c9"))
+		dot(r.position + Vector2(4 + (k % 2) * (r.size.x - 8), 4 + (k / 2) * (r.size.y - 8)), 2.5, Color("c9c9c9"))
 
 
 func _hanging_plant(p: Vector2) -> void:
@@ -809,7 +809,7 @@ func _tv_cart(p: Vector2) -> void:
 	Art.ellipse(self, p + Vector2(0, 2), 60, 6, Color(0, 0, 0, 0.25))
 	for lx in [-50.0, 46.0]:
 		draw_rect(Rect2(p + Vector2(lx, -70), Vector2(4, 66)), Color("6a7078"))
-		draw_circle(p + Vector2(lx + 2, -3), 4, Color("2a2a2a"))
+		dot(p + Vector2(lx + 2, -3), 4, Color("2a2a2a"))
 	draw_rect(Rect2(p + Vector2(-54, -74), Vector2(108, 6)), Color("8a9098"))
 	draw_rect(Rect2(p + Vector2(-54, -26), Vector2(108, 5)), Color("8a9098"))
 	Art.round_rect(self, Rect2(p + Vector2(-40, -42), Vector2(80, 16)), 3, Color("1b1b1f"))
@@ -821,7 +821,7 @@ func _tv_cart(p: Vector2) -> void:
 	Art.round_rect(self, Rect2(p + Vector2(-38, -138), Vector2(62, 50)), 10, Color("3a4a52"))
 	draw_colored_polygon(PackedVector2Array([p + Vector2(-34, -134), p + Vector2(-10, -134), p + Vector2(-28, -100)]), Color(1, 1, 1, 0.08))
 	for k in 2:
-		draw_circle(p + Vector2(38, -130 + k * 16), 4, Color("2a2a2a"))
+		dot(p + Vector2(38, -130 + k * 16), 4, Color("2a2a2a"))
 	for k in 4:
 		draw_line(p + Vector2(32, -98 + k * 3), p + Vector2(44, -98 + k * 3), Color("3a2a1a"), 1.0)
 	draw_line(p + Vector2(-6, -150), p + Vector2(-26, -186), Color("aaaaaa"), 1.5)
@@ -829,8 +829,8 @@ func _tv_cart(p: Vector2) -> void:
 
 
 func _wall_clock(p: Vector2) -> void:
-	draw_circle(p, 22, Color("2a2a2a"))
-	draw_circle(p, 19, Color("f4efe0"))
+	dot(p, 22, Color("2a2a2a"))
+	dot(p, 19, Color("f4efe0"))
 	for k in 12:
 		var a := k * TAU / 12
 		draw_line(p + Vector2.from_angle(a) * 15, p + Vector2.from_angle(a) * 17, Color("3a3a3a"), 1.5 if k % 3 == 0 else 1.0)

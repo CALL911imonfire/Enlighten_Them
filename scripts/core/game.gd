@@ -29,6 +29,10 @@ var settings := {"steady_hands": false, "relaxed": false, "vol_master": 0.8, "vo
 var reached := 1          # furthest chapter unlocked
 var current := 0
 var transitioning := false
+## Microseconds spent in chapter tick() and paint(), summed (read by tools/bench.gd).
+var tick_us := 0
+var paint_us := 0
+var prof := {}
 var autotest := false     # developer self-test: dialogue advances by itself
 
 var main: Node = null      # set by main.gd

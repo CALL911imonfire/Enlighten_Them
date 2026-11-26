@@ -155,7 +155,7 @@ func paint() -> void:
 			var a := t * (0.6 - i * 0.1) + i * 1.7
 			var r := (lr * 2.0 + i * lr * 0.6)
 			if (sin(a) > 0) == front:
-				draw_circle(lp + Vector2(cos(a) * r, sin(a) * r * 0.32), (5 + i) * lr / 44.0, cols[i])
+				dot(lp + Vector2(cos(a) * r, sin(a) * r * 0.32), (5 + i) * lr / 44.0, cols[i])
 	# Carl swims past if he exists
 	if Game.carl_made and not thumb:
 		var cx := fmod(t * 60.0, 1700.0) - 200.0

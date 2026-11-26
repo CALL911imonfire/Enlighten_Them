@@ -374,14 +374,14 @@ func _end_icon(p: Vector2, kind: String, on: bool) -> void:
 			if on:
 				for k in 3:
 					var sp := fmod(t * 0.6 + k / 3.0, 1.0)
-					draw_circle(p + Vector2(13 + sin(sp * 6.0) * 3, -32 - sp * 22), 3 + sp * 4, Color(0.9, 0.9, 0.9, 0.45 * (1 - sp)))
+					dot(p + Vector2(13 + sin(sp * 6.0) * 3, -32 - sp * 22), 3 + sp * 4, Color(0.9, 0.9, 0.9, 0.45 * (1 - sp)))
 			draw_rect(Rect2(p + Vector2(-19, -6), Vector2(38, 27)), Color("efe0bc"))
 			for k in 4:
 				draw_line(p + Vector2(-19, -1 + k * 6), p + Vector2(19, -1 + k * 6), Color(0, 0, 0, 0.06), 1.0)
 			draw_colored_polygon(PackedVector2Array([p + Vector2(-25, -5), p + Vector2(0, -28), p + Vector2(25, -5)]), Color("b33a32"))
 			draw_line(p + Vector2(-25, -5), p + Vector2(25, -5), Color("7e2520"), 2.0)
 			draw_rect(Rect2(p + Vector2(-4, 6), Vector2(9, 15)), Color("5a3a20"))
-			draw_circle(p + Vector2(3, 14), 1, Color("e7c14a"))
+			dot(p + Vector2(3, 14), 1, Color("e7c14a"))
 			for wx in [-15.0, 9.0]:
 				draw_rect(Rect2(p + Vector2(wx, 0), Vector2(7, 7)), Color("ffe08a") if on else Color("8fb3cc"))
 				draw_line(p + Vector2(wx + 3.5, 0), p + Vector2(wx + 3.5, 7), Color("5a3a20"), 1.0)
@@ -414,12 +414,12 @@ func _end_icon(p: Vector2, kind: String, on: bool) -> void:
 			draw_line(p + Vector2(28, 21), p + Vector2(28, -34), Color("6b4a2a"), 3.0)
 			draw_line(p + Vector2(21, -28), p + Vector2(35, -28), Color("6b4a2a"), 2.0)
 			for ix in [22.0, 34.0]:
-				draw_circle(p + Vector2(ix, -30), 1.5, Color("88bbdd"))
+				dot(p + Vector2(ix, -30), 1.5, Color("88bbdd"))
 		"computer":
 			# beige PC: monitor, tower, keyboard, mouse
 			draw_rect(Rect2(p + Vector2(18, -18), Vector2(12, 34)), Color("cfc9b6"))
 			draw_rect(Rect2(p + Vector2(20, -12), Vector2(8, 2)), Color("555555"))
-			draw_circle(p + Vector2(24, 8), 1.5, Color("7fe08a") if on else Color("555555"))
+			dot(p + Vector2(24, 8), 1.5, Color("7fe08a") if on else Color("555555"))
 			Art.round_rect(self, Rect2(p + Vector2(-22, -24), Vector2(38, 32)), 3, Color("d9d4c4"))
 			draw_rect(Rect2(p + Vector2(-18, -20), Vector2(30, 22)), Color("1e5aa0") if on else Color("112233"))
 			if on:
@@ -436,7 +436,7 @@ func _end_icon(p: Vector2, kind: String, on: bool) -> void:
 			if on:
 				Art.glow(self, p, 50, Color(0.5, 0.88, 1, 0.35))
 			for c in [[-12, 2, 13], [6, -6, 16], [0, 8, 12], [18, 6, 11], [-20, 10, 8]]:
-				draw_circle(p + Vector2(c[0], c[1]), c[2], col)
+				dot(p + Vector2(c[0], c[1]), c[2], col)
 			for k in 3:
 				var r := Rect2(p + Vector2(-14 + k * 11, -2), Vector2(9, 14))
 				draw_rect(r, Color("2a3550"))
@@ -552,21 +552,21 @@ func paint() -> void:
 			if on:
 				# solid (not see-through) halo so overlapping arms and corners all glow the same
 				var hw := wdt + cs * 0.12
-				draw_circle(Vector2.ZERO, hw / 2, halo)
+				dot(Vector2.ZERO, hw / 2, halo)
 				for d in DIRS:
 					if c.m & d[0]:
 						draw_line(Vector2.ZERO, Vector2(d[1], d[2]) * cs / 2, halo, hw)
 			for d in DIRS:
 				if c.m & d[0]:
 					draw_line(Vector2.ZERO, Vector2(d[1], d[2]) * cs / 2, col, wdt)
-			draw_circle(Vector2.ZERO, cs * (0.13 if era_i == 0 else 0.08), col)
+			dot(Vector2.ZERO, cs * (0.13 if era_i == 0 else 0.08), col)
 			if era_i == 1:
 				draw_rect(Rect2(-4, -4, 8, 8), Color("5a3a20"))
 			if era_i == 2 and on:
 				var k := fmod(t * 2 + x * 0.3 + y * 0.3, 1.0)
 				for d in DIRS:
 					if c.m & d[0]:
-						draw_circle(Vector2(d[1], d[2]) * cs / 2 * k, 2.5, Color.WHITE)
+						dot(Vector2(d[1], d[2]) * cs / 2 * k, 2.5, Color.WHITE)
 			draw_set_transform_matrix(cam)
 	if mail >= 0 and era_i < 2:
 		var mp := _along(mail_pts, mail) + Vector2(0, sin(t * 10.0) * 2.0)

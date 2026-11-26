@@ -387,7 +387,7 @@ func _wheel(w: Dictionary) -> void:
 		var a := t * 6 + i * PI / 4
 		var c := Color("ff5d5d") if w.flash > 0 else Color("e9ecf2")
 		c.a = (i + 1) / 8.0
-		draw_circle(w.p + Vector2(cos(a), sin(a)) * w.r, w.r * 0.22, c)
+		dot(w.p + Vector2(cos(a), sin(a)) * w.r, w.r * 0.22, c)
 	if w.stage < 3:
 		for i in w.hp:
 			draw_rect(Rect2(w.p.x - w.r + i * (w.r * 2 / 4) + 2, w.p.y - w.r - 14, w.r * 2 / 4 - 4, 4), Color("ff5d5d"))
@@ -414,7 +414,7 @@ func _draw_room() -> void:
 	# framed picture of a sunset
 	draw_rect(Rect2(-170, 80, 120, 86), Color("6b4a2a"))
 	Art.vgrad(self, Rect2(-162, 88, 104, 70), Color("f2a65a"), Color("7a4a8a"))
-	draw_circle(Vector2(-110, 140), 14, Color("ffe08a"))
+	dot(Vector2(-110, 140), 14, Color("ffe08a"))
 	draw_rect(Rect2(-162, 140, 104, 18), Color("3a5a7a"))
 	# floor lamp
 	draw_rect(Rect2(638, 150, 4, 250), Color("2a2a2a"))
@@ -433,8 +433,8 @@ func _draw_tv() -> void:
 	# rabbit-ear antenna
 	draw_line(Vector2(300, 60), Vector2(250, 6), Color("888888"), 2.0, true)
 	draw_line(Vector2(300, 60), Vector2(352, 10), Color("888888"), 2.0, true)
-	draw_circle(Vector2(250, 6), 3, Color("aaaaaa"))
-	draw_circle(Vector2(352, 10), 3, Color("aaaaaa"))
+	dot(Vector2(250, 6), 3, Color("aaaaaa"))
+	dot(Vector2(352, 10), 3, Color("aaaaaa"))
 	Art.ellipse(self, Vector2(300, 60), 16, 7, Color("2b2b31"))
 	# cabinet with a wood-grain trim and a speaker grille
 	Art.round_rect(self, Rect2(146, 56, 308, 232), 18, Color("2b2b31"))
@@ -460,13 +460,13 @@ func _draw_panel() -> void:
 	Art.round_rect(self, Rect2(456, 194, 76, 104), 4, Color("2b2b31"))
 	txt(Vector2(494, 205), "AV IN", 8, Color("8a8a96"))
 	for sp in [Vector2(460, 198), Vector2(528, 198), Vector2(460, 294), Vector2(528, 294)]:
-		draw_circle(sp, 2, Color("55555e"))
+		dot(sp, 2, Color("55555e"))
 	for j in JACKS:
 		var jp: Vector2 = j.p
-		draw_circle(jp, 11, Color("15151a"))
-		draw_circle(jp, 9, Color(j.c))
-		draw_circle(jp, 6, Art.shade(Color(j.c), 0.75))
-		draw_circle(jp, 3.5, Color("111111"))
+		dot(jp, 11, Color("15151a"))
+		dot(jp, 9, Color(j.c))
+		dot(jp, 6, Art.shade(Color(j.c), 0.75))
+		dot(jp, 3.5, Color("111111"))
 		txt(jp + Vector2(-14, 3), j.n, 7, Color("dddddd"), 1)
 
 
@@ -564,9 +564,9 @@ func _draw_vcr() -> void:
 		Art.round_rect(self, Rect2(292 + k * 11, 349, 9, 8), 1, Color("3a3a40"))
 		draw_rect(Rect2(295 + k * 11, 352, 3, 2), Color("8a8a94"))
 	# tracking knob
-	draw_circle(Vector2(395, 342), 13, Color("2a2a30"))
+	dot(Vector2(395, 342), 13, Color("2a2a30"))
 	draw_set_transform_matrix(cam * Transform2D((track - 0.5) * 4, Vector2(395, 342)))
-	draw_circle(Vector2.ZERO, 11, Color("55555c"))
+	dot(Vector2.ZERO, 11, Color("55555c"))
 	for k in 12:
 		var a := k * TAU / 12
 		draw_line(Vector2(cos(a), sin(a)) * 8, Vector2(cos(a), sin(a)) * 11, Color("44444a"), 1.5)
@@ -601,14 +601,14 @@ func _draw_modem(a: float) -> void:
 		var c := Color(["7fe08a", "7fe08a", "ffcf5a", "ff6a5a", "7fe0ff"][k]) if on else Color("6a6a60")
 		c.a = a
 		var lp := m + Vector2(-30 + k * 9, 2)
-		draw_circle(lp, 2.4, c)
+		dot(lp, 2.4, c)
 		if on:
 			Art.glow(self, lp, 6, Color(c.r, c.g, c.b, 0.5 * a))
 		txt(lp + Vector2(0, 9), labels[k], 5, Color(0.45, 0.42, 0.34, a))
 	txt(m + Vector2(22, 4), "ETHEREAL", 6, Color(0.54, 0.48, 0.31, a))
 	# a little antenna for the cosmic connection
 	draw_line(m + Vector2(28, -16), m + Vector2(34, -36), Color(0.75, 0.72, 0.62, a), 2.0)
-	draw_circle(m + Vector2(34, -37), 2.5, Color(1, 0.91, 0.66, a))
+	dot(m + Vector2(34, -37), 2.5, Color(1, 0.91, 0.66, a))
 
 
 func paint() -> void:
@@ -659,8 +659,8 @@ func _draw_screen() -> void:
 			for k in 3:
 				var x := 190 + k * 80
 				Art.round_rect(self, Rect2(x, 140, 60, 52), 6, Color(pr[k][1]))
-				draw_circle(Vector2(x + 22, 162), 3, Color(0, 0, 0, 0.6))
-				draw_circle(Vector2(x + 38, 162), 3, Color(0, 0, 0, 0.6))
+				dot(Vector2(x + 22, 162), 3, Color(0, 0, 0, 0.6))
+				dot(Vector2(x + 38, 162), 3, Color(0, 0, 0, 0.6))
 				draw_arc(Vector2(x + 30, 172), 8, 0.3, PI - 0.3, 8, Color(0, 0, 0, 0.6), 2.0)
 				txt(Vector2(x + 30, 208), pr[k][0], 12, Color("dddddd"))
 		if phase in ["bossintro", "boss", "still", "stillq", "end"]:
@@ -690,12 +690,12 @@ func _draw_props() -> void:
 		draw_rect(Rect2(-32, -17, 64, 13), Color("f2eee2"))
 		txt(Vector2(0, -7), "DO NOT WATCH", 8, Color("d64535"))
 		for dx in [-15, 15]:
-			draw_circle(Vector2(dx, 9), 7, Color("555555"))
+			dot(Vector2(dx, 9), 7, Color("555555"))
 		if phase == "tape" and not busy():
 			draw_rect(Rect2(-44, -26, 88, 52), Color("ffcf5a"), false, 2.0)
 		draw_set_transform_matrix(cam)
 	for s in smoke:
-		draw_circle(s.p, s.r, Color(0.63, 0.63, 0.63, s.life / 5))
+		dot(s.p, s.r, Color(0.63, 0.63, 0.63, s.life / 5))
 	if phase in ["boss", "bossintro"]:
 		for w in wheels:
 			_wheel(w)

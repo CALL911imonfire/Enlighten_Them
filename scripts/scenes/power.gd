@@ -337,7 +337,7 @@ func _plant(p: Vector2) -> void:
 	draw_line(ct + Vector2(-17, -18), ct + Vector2(17, -18), Color(0, 0, 0, 0.12), 2.0)
 	for i in 3:
 		var k := fmod(t * 0.35 + i / 3.0, 1.0)
-		draw_circle(ct + Vector2(-6 + k * 20, -66 - k * 60), 10 + k * 14, Color(0.93, 0.93, 0.93, 0.55 * (1 - k)))
+		dot(ct + Vector2(-6 + k * 20, -66 - k * 60), 10 + k * 14, Color(0.93, 0.93, 0.93, 0.55 * (1 - k)))
 	# brick turbine hall with a saw-tooth roof and lit windows
 	var hall := Rect2(p + Vector2(-14, -8), Vector2(52, 38))
 	Art.vgrad(self, hall, Color("8a5a44"), Color("6a4232"))
@@ -361,15 +361,15 @@ func _plant(p: Vector2) -> void:
 		draw_rect(Rect2(ch + Vector2(-5.5, b * 9), Vector2(11, 4)), Color("c23a2c") if b % 2 == 0 else Color("e8e2da"))
 	for i in 5:
 		var k := fmod(t * 0.5 + i / 5.0, 1.0)
-		draw_circle(ch + Vector2(k * 34, -6 - k * 90), 6 + k * 16, Color(0.16, 0.15, 0.15, 0.6 * (1 - k)))
+		dot(ch + Vector2(k * 34, -6 - k * 90), 6 + k * 16, Color(0.16, 0.15, 0.15, 0.6 * (1 - k)))
 	# coal heap and conveyor
 	draw_colored_polygon(Art.ellipse_pts(p + Vector2(-56, 30), 16, 14, 0, 12, PI, TAU), Color("1e1c1c"))
 	for i in 5:
-		draw_circle(p + Vector2(-64 + i * 4, 24 - (i % 2) * 4), 1.5, Color("4a4646"))
+		dot(p + Vector2(-64 + i * 4, 24 - (i % 2) * 4), 1.5, Color("4a4646"))
 	draw_line(p + Vector2(-50, 22), p + Vector2(-14, 4), Color("3a3a3a"), 3.0)
 	for k in 4:
 		var f := fmod(t * 0.6 + k / 4.0, 1.0)
-		draw_circle((p + Vector2(-50, 20)).lerp(p + Vector2(-14, 2), f), 1.8, Color("111111"))
+		dot((p + Vector2(-50, 20)).lerp(p + Vector2(-14, 2), f), 1.8, Color("111111"))
 
 
 func _solar(p: Vector2, s: float) -> void:
@@ -421,7 +421,7 @@ func _turbine(p: Vector2, w: float) -> void:
 		draw_set_transform_matrix(cam * Transform2D(t * w * 6 + i * TAU / 3, p + Vector2(0, -50)))
 		draw_colored_polygon(PackedVector2Array([Vector2(-3, 0), Vector2(3, 0), Vector2(1, 38), Vector2(-1, 38)]), Color("f4f4f4"))
 	draw_set_transform_matrix(cam)
-	draw_circle(p + Vector2(0, -50), 5, Color("cccccc"))
+	dot(p + Vector2(0, -50), 5, Color("cccccc"))
 
 
 func _battery(p: Vector2, f: float) -> void:
@@ -470,9 +470,9 @@ func paint() -> void:
 				if _sun_at(sim.h) > 0:
 					var sp := Vector2(60 + (hr - 6) / 12.0 * 480, 300 - sin((hr - 6) / 12.0 * PI) * 120)
 					Art.glow(self, sp, 60, Color(1, 0.9, 0.4, 0.6))
-					draw_circle(sp, 18, Color("ffe066"))
+					dot(sp, 18, Color("ffe066"))
 				else:
-					draw_circle(Vector2(40, 205), 12, Color("eeeeee"))
+					dot(Vector2(40, 205), 12, Color("eeeeee"))
 			var hills := PackedVector2Array([Vector2(-900, 330), Vector2(-900, 300)])
 			var prev := Vector2(0, 300)
 			hills.append(prev)

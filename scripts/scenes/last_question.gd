@@ -332,7 +332,7 @@ func paint() -> void:
 			if p.life > 0:
 				var c: Color = p.c
 				c.a = minf(1, p.life)
-				draw_circle(p.p, p.s, c)
+				dot(p.p, p.s, c)
 		if phase != "bang":
 			var a := minf(1, end_t / 2)
 			Art.text(self, Vector2(300, 290), "The End", 46, Color(1, 0.91, 0.66, a), 0, Art.serif())
@@ -345,11 +345,11 @@ func paint() -> void:
 			"alive":
 				var c := Color(1, 1, 0.94, 0.6 + 0.4 * sin(t * 2 + s.tw))
 				Art.glow(self, s.p, s.r * 4, Color(1, 1, 0.9, 0.25))
-				draw_circle(s.p, s.r, c)
+				dot(s.p, s.r, c)
 			"dying":
 				var R: float = s.r + s.k * 16
 				Art.glow(self, s.p, R * 2.4, Color(1, 0.35, 0.24, 0.6 * (1 - s.k * 0.5)))
-				draw_circle(s.p, R * 0.6, Color(1, (140 - s.k * 90) / 255.0, (90 - s.k * 60) / 255.0))
+				dot(s.p, R * 0.6, Color(1, (140 - s.k * 90) / 255.0, (90 - s.k * 60) / 255.0))
 				draw_arc(s.p, R + 6, 0, TAU, 24, Color(1, 0.81, 0.35, 0.8 - s.k * 0.5), 2.0, true)
 	for m in motes:
 		Art.glow(self, m.p, 12, Color(1, 0.94, 0.7, 0.9))

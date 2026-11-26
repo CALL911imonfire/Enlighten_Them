@@ -5,6 +5,8 @@ var stars: Array
 var menu := "main"   # main, chapters, options, credits
 var panel: Control
 var hover_light := false
+## Set by tools/peek.gd to draw the 630x500 itch.io thumbnail layout centred on the screen.
+var thumb := false
 
 
 func setup() -> void:
@@ -124,6 +126,10 @@ func click(p: Vector2) -> void:
 
 
 func tick(_dt: float) -> void:
+	if thumb:
+		panel.visible = false
+		hover_light = false
+		return
 	hover_light = menu == "main" and mouse().distance_to(Vector2(640, 250)) < 70
 
 
@@ -137,20 +143,27 @@ func paint() -> void:
 	var main_menu := menu == "main"
 	var lp := Vector2(640, (250 if main_menu else 100) + sin(t * 1.4) * 6.0)
 	var lr := 44.0 if main_menu else 26.0
+	if thumb:
+		lp = Vector2(640, 400)
+		lr = 54.0
 	var cols := [Color("b9b3a9"), Color("e8c37a"), Color("3d8bd9"), Color("d0603a")]
 	for front in [false, true]:
 		if front:
 			Art.glow(self, lp, lr * 6.0 + (30 if hover_light else 0), Color(1, 0.85, 0.5, 0.25))
-			light(lp, lr, {"look": (mouse() - lp) / 200.0})
+			light(lp, lr, {"look": Vector2.ZERO if thumb else (mouse() - lp) / 200.0})
 		for i in 4:
 			var a := t * (0.6 - i * 0.1) + i * 1.7
 			var r := (lr * 2.0 + i * lr * 0.6)
 			if (sin(a) > 0) == front:
 				draw_circle(lp + Vector2(cos(a) * r, sin(a) * r * 0.32), (5 + i) * lr / 44.0, cols[i])
 	# Carl swims past if he exists
-	if Game.carl_made:
+	if Game.carl_made and not thumb:
 		var cx := fmod(t * 60.0, 1700.0) - 200.0
 		carl(Vector2(cx, 660 + sin(t * 2.0) * 6.0), 0.22, {"walk": 0.4})
+	if thumb:
+		Art.text(self, Vector2(640, 222), "Enlighten Them", 66, Color("ffe9a8"), 0, Art.serif(), 5, Color(0.1, 0.05, 0.15, 0.8))
+		Art.text(self, Vector2(640, 264), "A comedy about paradigm shifts", 21, Color("c9c3db"), 0)
+		return
 	match menu:
 		"main":
 			Art.text(self, Vector2(640, 120), "Enlighten Them", 84, Color("ffe9a8"), 0, Art.serif(), 6, Color(0.1, 0.05, 0.15, 0.8))

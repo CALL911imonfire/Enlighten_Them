@@ -12,6 +12,7 @@ var done := false
 var crop := Rect2i()
 var calls: Array = []
 var called := false
+var zoom := 4
 
 
 func _ready() -> void:
@@ -29,6 +30,8 @@ func _ready() -> void:
 			crop = Rect2i(int(v[0]), int(v[1]), int(v[2]), int(v[3]))
 		elif a.begins_with("--call="):
 			calls = Array(a.substr(7).split(","))
+		elif a.begins_with("--zoom="):
+			zoom = int(a.substr(7))
 		elif a == "--nodialog":
 			nodialog = true
 
@@ -51,6 +54,7 @@ func _process(dt: float) -> void:
 		var img := get_viewport().get_texture().get_image()
 		if crop.size.x > 0:
 			img = img.get_region(crop)
-			img.resize(crop.size.x * 4, crop.size.y * 4, Image.INTERPOLATE_NEAREST)
+			if zoom != 1:
+				img.resize(crop.size.x * zoom, crop.size.y * zoom, Image.INTERPOLATE_NEAREST)
 		img.save_png(out)
 		get_tree().quit()

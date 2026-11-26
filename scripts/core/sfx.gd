@@ -452,18 +452,19 @@ const MUSIC_DB := -12.0
 ## music grows as the player moves forward. Stem ids are "<song>_<stem>", and
 ## each one is res://music/<id>.wav.
 const SONGS := {
-	"lights": ["chords", "bass", "melody", "end", "end_echo"],   # 4 bars
+	"lights": ["chords", "bass", "end", "end_echo"],            # 4 bars
 	"carl": ["chords", "bass", "drums", "extra", "lane7", "harmony", "melody"],  # 12 bars
 	"sick": ["song"],                                            # one full 40-bar track
+	"lightsfull": ["song"],                                      # The Lights, full arrangement (112 s)
 }
-const SONG_BPM := {"lights": 70.0, "carl": 120.0, "sick": 120.0}
-const SONG_DB := {"lights": -9.0, "carl": -3.0, "sick": -2.0}   # later exports came out quieter
+const SONG_BPM := {"lights": 70.0, "carl": 120.0, "sick": 120.0, "lightsfull": 120.0}
+const SONG_DB := {"lights": -9.0, "carl": -3.0, "sick": -2.0, "lightsfull": 0.0}   # later exports came out quieter
 ## Which stems each chapter starts with. Chapters not listed use their generated track.
 const LAYERS := {
 	0: ["lights_chords"],
-	1: ["lights_chords", "lights_bass"],
-	2: ["lights_chords", "lights_bass", "lights_melody"],
-	3: ["lights_chords", "lights_bass", "lights_melody"],
+	1: ["lightsfull_song"],
+	2: ["lightsfull_song"],
+	3: ["lightsfull_song"],
 	4: ["carl_chords"],
 	5: ["carl_chords", "carl_bass", "carl_drums", "carl_extra", "carl_lane7", "carl_harmony"],
 	8: ["sick_song"],
@@ -477,7 +478,6 @@ const GROW := {
 }
 ## Story cues that change the stems mid-chapter (see music_cue).
 const CUES := {
-	"melody": ["lights_chords", "lights_bass", "lights_melody"],  # chapter 1: putting the planets back
 	"end": ["lights_chords", "lights_bass", "lights_end"],        # the Light settles into its recliner
 	"echo": ["lights_end_echo"],                                  # Carl is alone
 	"carl_all": CARL_ALL,                                          # Make Carl: Done pressed
@@ -493,6 +493,7 @@ var _speed_to := 1.0        # and where it's heading
 var _grow: Array = []       # stem sets this chapter steps through (see GROW)
 var _grow_i := 0
 var _grow_pos := 0.0        # loop position last frame, to spot the loop restarting
+var _handoff: Array = []    # stems to switch to once the current loop finishes
 var _stem_snap := {}        # stems that join or leave on the beat instead of fading
 
 
@@ -558,7 +559,13 @@ func music_for(chapter: int) -> void:
 	_want_music = chapter
 	_speed_to = 1.0
 	_grow = []
+	_handoff = []
 	if Game.autotest:
+		return
+	# leaving the title: let the menu music finish its loop before chapter 1's song starts
+	if chapter == 1 and _stem_on == LAYERS[0] and _stems[_stem_on[0]].playing:
+		_handoff = LAYERS[1]
+		_grow_pos = _stems[_stem_on[0]].get_playback_position()
 		return
 	if LAYERS.has(chapter):
 		_use_stems(LAYERS[chapter])
@@ -607,6 +614,15 @@ func _fade_music(dt: float) -> void:
 			_stems[n].pitch_scale = _speed
 		_shifter.pitch_scale = 1.0 / _speed
 		AudioServer.set_bus_effect_enabled(_song_bus, 0, not is_equal_approx(_speed, 1.0))
+	if not _handoff.is_empty():
+		var pos: float = _stems[_stem_on[0]].get_playback_position()
+		if pos + 1.0 < _grow_pos:
+			for id in _stem_on + _handoff:
+				_stem_snap[id] = true   # cut over right on the beat
+			_use_stems(_handoff)
+			_handoff = []
+		else:
+			_grow_pos = pos
 	if not _grow.is_empty() and not _stem_on.is_empty():
 		# the next set starts when the song comes back around to its first beat
 		var lead: AudioStreamPlayer = _stems[_stem_on[0]]

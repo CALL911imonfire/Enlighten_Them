@@ -249,7 +249,6 @@ func _sun_placed() -> void:
 		"Put the planets back on their rings. Closest to the Sun goes first.",
 	])
 	phase = "order"
-	Sfx.music_cue("melody")   # the melody joins as the player puts the planets back
 
 
 func _delayed_fly(b: Dictionary, d: float) -> void:

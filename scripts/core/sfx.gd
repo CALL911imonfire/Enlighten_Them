@@ -475,6 +475,9 @@ const LAYERS := {
 	9: ["glow_song"],
 	10: ["glow2_song"],
 }
+## Songs whose repeats skip a soft intro: the loop jumps back here (seconds)
+## instead of to the very start.
+const LOOP_FROM := {"glow_song": 8.0}
 ## Chapters whose song waits for the previous one (if it's still playing) to reach
 ## a boundary: [stem, seconds per step]. 0 means the end of its whole loop,
 ## otherwise the next bar.
@@ -522,7 +525,7 @@ func _load_stems() -> void:
 		for n in SONGS[song]:
 			var s: AudioStreamWAV = load("res://music/%s_%s.wav" % [song, n])
 			s.loop_mode = AudioStreamWAV.LOOP_FORWARD
-			s.loop_begin = 0
+			s.loop_begin = int(LOOP_FROM.get("%s_%s" % [song, n], 0.0) * s.mix_rate)
 			s.loop_end = int(round(s.get_length() * s.mix_rate))
 			var p := _new_music_player()
 			p.bus = "Songs"

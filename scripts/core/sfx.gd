@@ -475,9 +475,10 @@ const LAYERS := {
 	9: ["glow_song"],
 	10: ["glow2_song"],
 }
-## Chapters whose song waits for the previous one to reach the end of its loop
-## (if it's still playing), so it finishes instead of being cut off.
-const FINISH_FIRST := {1: "lights_chords", 10: "glow_song"}
+## Chapters whose song waits for the previous one (if it's still playing) to reach
+## a boundary: [stem, seconds per step]. 0 means the end of its whole loop,
+## otherwise the next bar.
+const FINISH_FIRST := {1: ["lights_chords", 0.0], 10: ["glow_song", 2.0]}
 ## A chapter can step through stem sets, moving to the next one each time the
 ## loop comes back to its first beat, and starting over after the last.
 const CARL_ALL := ["carl_chords", "carl_bass", "carl_drums", "carl_extra", "carl_lane7"]
@@ -504,7 +505,8 @@ var _speed_to := 1.0        # and where it's heading
 var _grow: Array = []       # stem sets this chapter steps through (see GROW)
 var _grow_i := 0
 var _grow_pos := 0.0        # loop position last frame, to spot the loop restarting
-var _handoff: Array = []    # stems to switch to once the current loop finishes
+var _handoff: Array = []    # stems to switch to once the current loop or bar finishes
+var _handoff_bar := 0.0
 var _stem_snap := {}        # stems that join or leave on the beat instead of fading
 
 
@@ -575,8 +577,9 @@ func music_for(chapter: int) -> void:
 	if Game.autotest:
 		return
 	# e.g. leaving the title: let the menu music finish its loop before chapter 1's song starts
-	if FINISH_FIRST.has(chapter) and _stem_on == [FINISH_FIRST[chapter]] and _stems[_stem_on[0]].playing:
+	if FINISH_FIRST.has(chapter) and _stem_on == [FINISH_FIRST[chapter][0]] and _stems[_stem_on[0]].playing:
 		_handoff = LAYERS[chapter]
+		_handoff_bar = FINISH_FIRST[chapter][1]
 		_grow_pos = _stems[_stem_on[0]].get_playback_position()
 		return
 	if LAYERS.has(chapter):
@@ -628,7 +631,10 @@ func _fade_music(dt: float) -> void:
 		AudioServer.set_bus_effect_enabled(_song_bus, 0, not is_equal_approx(_speed, 1.0))
 	if not _handoff.is_empty():
 		var pos: float = _stems[_stem_on[0]].get_playback_position()
-		if pos + 1.0 < _grow_pos:
+		var crossed := pos + 1.0 < _grow_pos
+		if _handoff_bar > 0.0:
+			crossed = crossed or floorf(pos / _handoff_bar) > floorf(_grow_pos / _handoff_bar)
+		if crossed:
 			for id in _stem_on + _handoff:
 				_stem_snap[id] = true   # cut over right on the beat
 			_use_stems(_handoff)

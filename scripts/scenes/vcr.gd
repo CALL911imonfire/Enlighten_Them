@@ -148,6 +148,7 @@ func _pick_profile(k: int) -> void:
 
 func _start_boss() -> void:
 	hits = 0
+	Sfx.music_cue("boss")   # lane 5 joins the music for the fight
 	wheels = [{"p": SCR.get_center(), "v": Vector2(120, 80), "r": 26.0, "hp": 4, "stage": 1, "flash": 0.0}]
 
 
@@ -180,6 +181,7 @@ func _hit_wheel(w: Dictionary) -> void:
 
 func _boss_done() -> void:
 	phase = "still"
+	Sfx.music_cue("boss_done")
 	Sfx.chime()
 	await Dialog.say(["It's loading! One hundred percent! We did it!", "CARL:A historic victory. Future generations will sing of this."])
 	phase = "stillq"

@@ -456,9 +456,10 @@ const SONGS := {
 	"carl": ["chords", "bass", "drums", "extra", "lane7", "harmony", "melody"],  # 12 bars
 	"sick": ["song"],                                            # one full 40-bar track
 	"lightsfull": ["song"],                                      # The Lights, full arrangement (112 s)
+	"library": ["song", "lane5"],                                # 80 BPM, 24 bars (72 s)
 }
-const SONG_BPM := {"lights": 70.0, "carl": 120.0, "sick": 120.0, "lightsfull": 120.0}
-const SONG_DB := {"lights": -9.0, "carl": -3.0, "sick": -2.0, "lightsfull": 0.0}   # later exports came out quieter
+const SONG_BPM := {"lights": 70.0, "carl": 120.0, "sick": 120.0, "lightsfull": 120.0, "library": 80.0}
+const SONG_DB := {"lights": -9.0, "carl": -3.0, "sick": -2.0, "lightsfull": 0.0, "library": -2.0}   # later exports came out quieter
 ## Which stems each chapter starts with. Chapters not listed use their generated track.
 const LAYERS := {
 	0: ["lights_chords"],
@@ -467,6 +468,8 @@ const LAYERS := {
 	3: ["lightsfull_song"],
 	4: ["carl_chords"],
 	5: ["carl_chords", "carl_bass", "carl_drums", "carl_extra", "carl_lane7", "carl_harmony"],
+	6: ["library_song"],
+	7: ["library_song"],
 	8: ["sick_song"],
 }
 ## A chapter can step through stem sets, moving to the next one each time the
@@ -480,6 +483,8 @@ const GROW := {
 const CUES := {
 	"end": ["lights_chords", "lights_bass", "lights_end"],        # the Light settles into its recliner
 	"echo": ["lights_end_echo"],                                  # Carl is alone
+	"boss": ["library_song", "library_lane5"],                    # Be Kind, Rewind: the buffering wheel fight
+	"boss_done": ["library_song"],
 	"carl_all": CARL_ALL,                                          # Make Carl: Done pressed
 	"carl_melody": ["carl_chords", "carl_bass", "carl_drums", "carl_extra", "carl_lane7", "carl_harmony", "carl_melody"],  # road: first phase beaten
 }
